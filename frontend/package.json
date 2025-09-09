@@ -24,6 +24,7 @@
     "@fullcalendar/daygrid": "6.1.11",
     "@fullcalendar/react": "6.1.11",
     "@fullcalendar/timegrid": "6.1.11",
+    "@hello-pangea/dnd": "^18.0.1",
     "@loadable/component": "5.16.4",
     "@reduxjs/toolkit": "1.9.7",
     "@types/loadable__component": "5.13.9",

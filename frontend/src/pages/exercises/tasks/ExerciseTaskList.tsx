@@ -15,7 +15,8 @@ import {
   Dropdown,
   ButtonGroup,
 } from "react-bootstrap";
-import { Plus, Edit2, Trash2, Check, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Check, X, GripVertical } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBell } from "@fortawesome/free-regular-svg-icons";
 
@@ -290,13 +291,15 @@ interface TaskTableProps {
   onEdit: (task: ExampleTask) => void;
   onDelete: (task: ExampleTask) => void;
   onStatusChange: (task: ExampleTask, newStatus: TaskStatus) => void;
+  droppableId: string;
 }
 
-const TaskTable = ({ tasks, onEdit, onDelete, onStatusChange }: TaskTableProps) => {
+const TaskTable = ({ tasks, onEdit, onDelete, onStatusChange, droppableId }: TaskTableProps) => {
   return (
     <Table responsive>
       <thead>
         <tr>
+          <th className="align-middle" style={{ width: '30px' }}></th>
           <th className="align-middle" style={{ width: '40px' }}>
             Status
           </th>
@@ -307,59 +310,79 @@ const TaskTable = ({ tasks, onEdit, onDelete, onStatusChange }: TaskTableProps) 
           <th className="align-middle text-end">Actions</th>
         </tr>
       </thead>
-      <tbody>
-        {tasks.map((task) => (
-          <tr key={task.id}>
-            <td>
-              <Form.Check
-                type="checkbox"
-                checked={task.status === TaskStatus.COMPLETED}
-                onChange={(e) => {
-                  const newStatus = e.target.checked ? TaskStatus.COMPLETED : TaskStatus.UPCOMING;
-                  onStatusChange(task, newStatus);
-                }}
-                aria-label={`Mark ${task.name} as ${task.status === TaskStatus.COMPLETED ? 'incomplete' : 'complete'}`}
-              />
-            </td>
-            <td>
-              <strong className={task.status === TaskStatus.COMPLETED ? 'text-decoration-line-through text-muted' : ''}>
-                {task.name}
-              </strong>
-            </td>
-            <td className="d-none d-xl-table-cell">{task.description || '-'}</td>
-            <td className="d-none d-xxl-table-cell">{new Date(task.createdAt).toLocaleDateString()}</td>
-            <td>
-              <Badge bg="" className={`badge-subtle-${priorityVariantMap[task.priority]}`}>
-                {task.priority}
-              </Badge>
-            </td>
-            <td className="text-end">
-              <ButtonGroup size="sm">
-                <Button 
-                  variant="light" 
-                  onClick={() => onEdit(task)}
-                  title="Edit task"
-                >
-                  <Edit2 size={14} />
-                </Button>
-                <Button 
-                  variant="light" 
-                  onClick={() => onDelete(task)}
-                  title="Delete task"
-                  className="text-danger"
-                >
-                  <Trash2 size={14} />
-                </Button>
-              </ButtonGroup>
-            </td>
-          </tr>
-        ))}
-        {tasks.length === 0 && (
-            <tr>
-                <td colSpan={6} className="text-center p-3">No tasks in this category.</td>
-            </tr>
+      <Droppable droppableId={droppableId}>
+        {(provided, snapshot) => (
+          <tbody
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={snapshot.isDraggingOver ? 'bg-light' : ''}
+          >
+            {tasks.map((task, index) => (
+              <Draggable key={task.id} draggableId={task.id} index={index}>
+                {(provided, snapshot) => (
+                  <tr
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    className={snapshot.isDragging ? 'shadow' : ''}
+                  >
+                    <td {...provided.dragHandleProps} className="text-muted cursor-grab">
+                      <GripVertical size={16} />
+                    </td>
+                    <td>
+                      <Form.Check
+                        type="checkbox"
+                        checked={task.status === TaskStatus.COMPLETED}
+                        onChange={(e) => {
+                          const newStatus = e.target.checked ? TaskStatus.COMPLETED : TaskStatus.UPCOMING;
+                          onStatusChange(task, newStatus);
+                        }}
+                        aria-label={`Mark ${task.name} as ${task.status === TaskStatus.COMPLETED ? 'incomplete' : 'complete'}`}
+                      />
+                    </td>
+                    <td>
+                      <strong className={task.status === TaskStatus.COMPLETED ? 'text-decoration-line-through text-muted' : ''}>
+                        {task.name}
+                      </strong>
+                    </td>
+                    <td className="d-none d-xl-table-cell">{task.description || '-'}</td>
+                    <td className="d-none d-xxl-table-cell">{new Date(task.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <Badge bg="" className={`badge-subtle-${priorityVariantMap[task.priority]}`}>
+                        {task.priority}
+                      </Badge>
+                    </td>
+                    <td className="text-end">
+                      <ButtonGroup size="sm">
+                        <Button 
+                          variant="light" 
+                          onClick={() => onEdit(task)}
+                          title="Edit task"
+                        >
+                          <Edit2 size={14} />
+                        </Button>
+                        <Button 
+                          variant="light" 
+                          onClick={() => onDelete(task)}
+                          title="Delete task"
+                          className="text-danger"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </ButtonGroup>
+                    </td>
+                  </tr>
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+            {tasks.length === 0 && (
+                <tr>
+                    <td colSpan={7} className="text-center p-3">No tasks in this category.</td>
+                </tr>
+            )}
+          </tbody>
         )}
-      </tbody>
+      </Droppable>
     </Table>
   );
 };
@@ -371,9 +394,10 @@ interface TaskBoardProps {
   onEditTask: (task: ExampleTask) => void;
   onDeleteTask: (task: ExampleTask) => void;
   onStatusChange: (task: ExampleTask, newStatus: TaskStatus) => void;
+  droppableId: string;
 }
 
-const TaskBoard = ({ title, tasks, onCreateTask, onEditTask, onDeleteTask, onStatusChange }: TaskBoardProps) => {
+const TaskBoard = ({ title, tasks, onCreateTask, onEditTask, onDeleteTask, onStatusChange, droppableId }: TaskBoardProps) => {
   return (
     <Card className="mb-3">
       <Card.Body>
@@ -398,6 +422,7 @@ const TaskBoard = ({ title, tasks, onCreateTask, onEditTask, onDeleteTask, onSta
           onEdit={onEditTask}
           onDelete={onDeleteTask}
           onStatusChange={onStatusChange}
+          droppableId={droppableId}
         />
       </Card.Body>
     </Card>
@@ -532,6 +557,75 @@ const ExerciseTaskList = () => {
     }
   }, []);
 
+  // Drag and drop handler
+  const handleDragEnd = useCallback(async (result: DropResult) => {
+    const { destination, source, draggableId } = result;
+
+    // Dropped outside the list
+    if (!destination) {
+      return;
+    }
+
+    // No movement
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+
+    // Find the task that was dragged
+    const draggedTask = tasks.find(task => task.id === draggableId);
+    if (!draggedTask) return;
+
+    // Determine new status based on destination
+    let newStatus: TaskStatus;
+    switch (destination.droppableId) {
+      case 'upcoming':
+        newStatus = TaskStatus.UPCOMING;
+        break;
+      case 'in-progress':
+        newStatus = TaskStatus.IN_PROGRESS;
+        break;
+      case 'completed':
+        newStatus = TaskStatus.COMPLETED;
+        break;
+      default:
+        return;
+    }
+
+    // If status hasn't changed and it's just reordering, we can skip the API call
+    if (draggedTask.status === newStatus) {
+      // For now, we'll just handle status changes, not reordering within the same status
+      return;
+    }
+
+    // Optimistically update the UI
+    setTasks(prev => prev.map(task => 
+      task.id === draggableId ? { ...task, status: newStatus } : task
+    ));
+
+    // Update via API
+    try {
+      const updatedTask = await fetchApi<ExampleTask>(`/exercises/tasks/${draggableId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus }),
+      });
+      
+      if (updatedTask) {
+        setTasks(prev => prev.map(task => 
+          task.id === draggableId ? updatedTask : task
+        ));
+      }
+    } catch (err) {
+      // Rollback on error
+      setTasks(prev => prev.map(task => 
+        task.id === draggableId ? draggedTask : task
+      ));
+      setApiError(err instanceof Error ? err.message : 'Failed to update task status');
+    }
+  }, [tasks]);
+
   const upcomingTasks = tasks.filter((task) => task.status === TaskStatus.UPCOMING);
   const inProgressTasks = tasks.filter((task) => task.status === TaskStatus.IN_PROGRESS);
   const completedTasks = tasks.filter((task) => task.status === TaskStatus.COMPLETED);
@@ -591,7 +685,7 @@ const ExerciseTaskList = () => {
         )}
 
         {!isLoading && !error && (
-          <>
+          <DragDropContext onDragEnd={handleDragEnd}>
             <TaskBoard 
               title={statusMap[TaskStatus.UPCOMING]} 
               tasks={upcomingTasks}
@@ -599,6 +693,7 @@ const ExerciseTaskList = () => {
               onEditTask={handleEditTask}
               onDeleteTask={handleDeleteClick}
               onStatusChange={handleStatusChange}
+              droppableId="upcoming"
             />
             <TaskBoard 
               title={statusMap[TaskStatus.IN_PROGRESS]} 
@@ -607,6 +702,7 @@ const ExerciseTaskList = () => {
               onEditTask={handleEditTask}
               onDeleteTask={handleDeleteClick}
               onStatusChange={handleStatusChange}
+              droppableId="in-progress"
             />
             <TaskBoard 
               title={statusMap[TaskStatus.COMPLETED]} 
@@ -615,8 +711,9 @@ const ExerciseTaskList = () => {
               onEditTask={handleEditTask}
               onDeleteTask={handleDeleteClick}
               onStatusChange={handleStatusChange}
+              droppableId="completed"
             />
-          </>
+          </DragDropContext>
         )}
 
         {/* Task Modal */}
