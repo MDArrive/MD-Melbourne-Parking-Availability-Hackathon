@@ -19,7 +19,7 @@
         },
         {
           "name": "shell",
-          "command": "npm run dev",
+          "command": "",
           "size": 30
         }
       ]
