@@ -2,6 +2,14 @@
   "title": "AI-Assisted Development Practical",
   "description": "Hands-on exercises for AI-assisted full-stack development using Claude Code with a React + Express + Prisma monorepo",
   "version": "1.0",
+  "ports": [
+    { "env": "FRONTEND_PORT", "description": "Vite dev server port" },
+    { "env": "BACKEND_PORT", "description": "Express server port" }
+  ],
+  "urls": [
+    { "env": "VITE_API_BASE_URL", "port": "BACKEND_PORT", "path": "/api" },
+    { "env": "FRONTEND_URL", "port": "FRONTEND_PORT" }
+  ],
   "setup": {
     "install": "npm install && npm run db:migrate:dev -w backend && npm run db:seed -w backend",
     "env": {
