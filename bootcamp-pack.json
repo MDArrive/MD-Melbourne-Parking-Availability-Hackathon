@@ -22,19 +22,12 @@
       "node",
       "claude"
     ],
-    "tmux": {
-      "layout": "vertical",
-      "panes": [
+    "shell": {
+      "command": "claude",
+      "services": [
         {
-          "name": "editor",
-          "command": "claude",
-          "size": 70,
-          "focus": true
-        },
-        {
-          "name": "shell",
-          "command": "npm run dev",
-          "size": 30
+          "name": "dev-server",
+          "command": "npm run dev"
         }
       ]
     }
