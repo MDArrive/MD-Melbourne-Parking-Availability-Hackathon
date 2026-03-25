@@ -27,6 +27,6 @@ This project is a monorepo containing a backend and frontend application, set up
     ```bash
     npm run dev
     ```
-    This command will launch both servers concurrently. The backend will typically run on `http://localhost:5001` and the frontend on `http://localhost:5000` (or the next available ports, as configured).
+    This command will launch both servers concurrently. The backend will typically run on `http://localhost:5001` and the frontend on `http://localhost:5173` (or the next available ports, as configured).
 
 You should now be able to access the frontend application in your browser and interact with the backend API. 

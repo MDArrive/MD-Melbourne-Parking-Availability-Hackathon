@@ -16,7 +16,8 @@ export default defineConfig({
     }),
   ],
   server: {
-    port: parseInt(process.env.FRONTEND_PORT || '5000'),
+    port: parseInt(process.env.FRONTEND_PORT || '5173'),
+    strictPort: true,
     host: true,
   },
   build: {

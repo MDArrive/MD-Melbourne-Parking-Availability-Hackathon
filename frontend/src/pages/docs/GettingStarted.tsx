@@ -24,7 +24,7 @@ const QuickStart = () => (
       Now you're ready to modify the source files and generate new{" "}
       <code>build/</code> files. AppStack is using webpack and webpack-serve to
       automatically detect file changes and start a local webserver at{" "}
-      <code>http://localhost:3000</code>.
+      <code>http://localhost:5173</code>.
     </p>
     <Code>npm start</Code>
   </div>
@@ -34,7 +34,7 @@ const BuildTools = () => (
   <div className="mb-5">
     <h3>Build tools</h3>
     <p className="text-lg mb-3">
-      Start a local webserver at <code>http://localhost:3000</code> and detect
+      Start a local webserver at <code>http://localhost:5173</code> and detect
       file changes:
     </p>
     <Code>npm start</Code>

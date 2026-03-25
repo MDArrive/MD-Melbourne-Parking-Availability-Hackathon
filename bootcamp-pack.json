@@ -13,10 +13,10 @@
   "setup": {
     "install": "npm install && npm run db:migrate:dev -w backend && npm run db:seed -w backend",
     "env": {
-      "FRONTEND_PORT": "Vite dev server port (default: 5000)",
+      "FRONTEND_PORT": "Vite dev server port (default: 5173)",
       "BACKEND_PORT": "Express server port (default: 5001)",
       "VITE_API_BASE_URL": "Frontend→backend API URL (default: http://localhost:5001/api)",
-      "FRONTEND_URL": "Backend CORS origin for frontend (default: http://localhost:5000)"
+      "FRONTEND_URL": "Backend CORS origin for frontend (default: http://localhost:5173)"
     },
     "requiredTools": [
       "node",

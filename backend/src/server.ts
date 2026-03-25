@@ -11,13 +11,13 @@ import analyticsRoutes from './routes/analytics.routes'; // Import the new analy
 dotenv.config();
 
 const app = express();
-const port = parseInt(process.env.BACKEND_PORT || '3001');
+const port = parseInt(process.env.BACKEND_PORT || '5001');
 
 // Middleware
 
 // Enable CORS for requests from the frontend origin
 app.use(cors({ 
-  origin: process.env.FRONTEND_URL || 'http://localhost:5000', // Allow frontend origin
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Allow frontend origin
   methods: ["GET", "POST", "PUT", "DELETE"], // Allowed methods
   // allowedHeaders: ["Content-Type", "Authorization"], // If you need specific headers
 }));
