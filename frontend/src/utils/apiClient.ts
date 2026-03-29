@@ -1,5 +1,5 @@
-// Use port 3001 and include /api prefix
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+// Use backend port 5001 and include /api prefix
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
 
 /**
  * A helper function for making API requests to the backend.
