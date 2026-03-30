@@ -26,7 +26,7 @@ const AnalyticsChartExercise = () => {
                   First, you need to fetch the data from the backend API endpoint. We have deliberately avoided giving you pointers to where this is as you can discover that using AI. 
                 </p>
                 <p className="mb-0">
-                  Once you have the data, use a charting library to visualize it. You can choose which metrics to display (e.g., Page Views and Total Visits over time). There are example charts implemented in the <strong>Example Layouts</strong> section of this application that you can reference for implementation details. However, <strong>do not look at the example code directly</strong>. Instead, ask the AI assistant to look at the relevant example code and explain how to implement the chart based on those examples.
+                  Once you have the data, use a charting library to visualize it. You can choose which metrics to display (e.g., Page Views and Total Visits over time). Ask the AI assistant to help you choose an appropriate charting library and implement the chart.
                 </p>
               </div>
             </Alert>

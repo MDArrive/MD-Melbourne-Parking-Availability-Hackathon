@@ -24,14 +24,13 @@ const Crypto = lazy(() => import("./pages/dashboards/Crypto"));
 
 // App Pages (New Section)
 const HomePage = lazy(() => import("./pages/app/HomePage"));
-const NavigationIndex = lazy(() => import("./pages/app/NavigationIndex"));
 
 // Exercise Pages (Previously Example)
 const ExerciseTaskList = lazy(
   () => import("./pages/exercises/tasks/ExerciseTaskList")
 );
-const LlmQueryExercise = lazy(
-  () => import("./pages/exercises/llm-query/LlmQuery")
+const ParkingAvailabilityExercise = lazy(
+  () => import("./pages/exercises/parking/ParkingAvailability")
 );
 const AnalyticsChartExercise = lazy(
   () => import("./pages/exercises/analytics/AnalyticsChart")
@@ -148,10 +147,6 @@ const routes = [
         path: "",
         element: <HomePage />,
       },
-      {
-        path: "navigation",
-        element: <NavigationIndex />,
-      },
     ],
   },
   {
@@ -168,8 +163,8 @@ const routes = [
         ],
       },
       {
-        path: "llm-query",
-        element: <LlmQueryExercise />,
+        path: "parking",
+        element: <ParkingAvailabilityExercise />,
       },
       {
         path: "analytics-chart",

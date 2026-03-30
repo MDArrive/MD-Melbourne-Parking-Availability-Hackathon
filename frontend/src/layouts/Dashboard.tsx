@@ -1,6 +1,6 @@
 import React, { Suspense, ReactNode } from "react";
 import { Outlet } from "react-router-dom";
-import { Home, LayoutGrid, List, MessageSquare, PieChart } from "lucide-react";
+import { Home, List, Car, PieChart } from "lucide-react";
 
 import Wrapper from "../components/Wrapper";
 import Sidebar from "../components/sidebar/Sidebar";
@@ -15,13 +15,6 @@ import { SidebarItemsType } from "../types/sidebar";
 interface DashboardProps {
   children?: ReactNode;
 }
-
-// Define the Example Layouts item separately for clarity
-const exampleLayoutsItem: SidebarItemsType = {
-  href: "/navigation",
-  icon: LayoutGrid,
-  title: "Example Layouts",
-};
 
 const sidebarNavigation: { title: string; pages: SidebarItemsType[] }[] = [
   {
@@ -43,21 +36,15 @@ const sidebarNavigation: { title: string; pages: SidebarItemsType[] }[] = [
         icon: List,
       },
       {
-        href: "/exercises/llm-query",
-        title: "LLM Query",
-        icon: MessageSquare,
+        href: "/exercises/parking",
+        title: "Car Park",
+        icon: Car,
       },
       {
         href: "/exercises/analytics-chart",
         title: "Analytics Charts",
         icon: PieChart,
       },
-    ],
-  },
-  {
-    title: "Reference",
-    pages: [
-      exampleLayoutsItem,
     ],
   },
 ];
