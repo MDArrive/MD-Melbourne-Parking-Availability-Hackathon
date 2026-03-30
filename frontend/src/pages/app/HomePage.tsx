@@ -51,6 +51,9 @@ const exercises: Exercise[] = [
       { label: 'Create backend API endpoints for zones and bays', done: false },
       { label: 'Build an availability dashboard with colour-coded zones', done: false },
       { label: 'Add bay management — book and release individual bays', done: false },
+      { label: 'Bonus: Visual bay map (floorplan-style layout)', done: false },
+      { label: 'Bonus: Live polling updates across users', done: false },
+      { label: 'Bonus: Booking details with driver name and vehicle search', done: false },
     ],
   },
   {

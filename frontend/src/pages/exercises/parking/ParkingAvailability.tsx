@@ -62,6 +62,27 @@ const ParkingAvailability = () => {
                   release it.
                 </li>
               </ul>
+              <hr />
+              <p className="mb-1">
+                <strong>Bonus Challenges</strong> — finished the core tasks? Try these:
+              </p>
+              <ul className="mb-0">
+                <li>
+                  <strong>Visual Bay Map.</strong> Replace the bay card grid with a visual
+                  floorplan-style layout — render bays as coloured squares in a grid that
+                  resembles an actual car park. Click a square to book or release.
+                </li>
+                <li>
+                  <strong>Live Updates.</strong> Add automatic polling (e.g. every 5 seconds)
+                  so the dashboard refreshes without a page reload. Multiple users should be
+                  able to see each other's bookings appear in real time.
+                </li>
+                <li>
+                  <strong>Booking Details.</strong> When booking a bay, prompt for a driver
+                  name and vehicle registration. Display this information on occupied bays
+                  and add a search feature to find a vehicle across all zones.
+                </li>
+              </ul>
             </div>
           </Alert>
         )}
