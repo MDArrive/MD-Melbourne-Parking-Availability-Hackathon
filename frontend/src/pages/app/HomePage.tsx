@@ -137,28 +137,34 @@ const HomePage = () => {
       <Container fluid className="p-0">
         <h1 className="h3 mb-3">AI-Assisted Development Bootcamp</h1>
 
-        <Card className="mb-4">
+        <Card className="mb-4 border-primary">
           <Card.Body>
-            <Card.Title as="h5">How this works</Card.Title>
-            <Card.Text>
-              You will use an AI coding assistant (Claude) to build real features in this application.
-              <strong> You do not need to understand the code yourself</strong> — the AI will do the
-              implementation for you.
-            </Card.Text>
-            <Card.Text as="div">
-              <ol className="mb-0">
+            <h5 className="mb-2">Welcome to the AI-Assisted Development Bootcamp</h5>
+            <p className="mb-3">
+              In this session you will use an AI coding assistant to build real features in a
+              real application. <strong>You do not need to understand the code or the
+              technology</strong> — you'll describe what you want in plain English and the AI
+              will do the implementation for you.
+            </p>
+
+            <div className="rounded p-3 mb-3" style={{ background: '#d1e7dd' }}>
+              <strong>How it works:</strong>
+              <ol className="mb-0 mt-1">
                 <li>Click on an exercise below to see its tasks.</li>
-                <li><strong>Copy a task description</strong> from the exercise page.</li>
-                <li><strong>Paste it directly into Claude</strong> as a prompt.</li>
+                <li>Read the task description, then tell Claude what you want in your own words.</li>
                 <li>Let Claude make the changes. Review what it did, then move to the next task.</li>
-                <li>Refresh this page to see your changes appear.</li>
+                <li>If you get stuck, each task has an example prompt you can reveal and copy.</li>
+                <li>If something goes wrong, just tell Claude what happened and it will fix it.</li>
               </ol>
-            </Card.Text>
-            <Card.Text className="mt-2 mb-0 text-muted">
-              Work through the tasks in order — each one builds on the last. If Claude asks you a
-              question, just answer it. If something goes wrong, tell Claude what happened and it
-              will fix it.
-            </Card.Text>
+            </div>
+
+            <div className="rounded p-3 mb-0" style={{ background: '#cfe2ff' }}>
+              <strong>What you'll learn:</strong> You can build, extend, and explore software
+              without understanding the codebase or the technology that powers it. Across the
+              exercises you'll see that AI can modify existing code, build entire features from
+              scratch, explore an unfamiliar codebase, choose and integrate tools, and combine
+              systems together — all from plain English descriptions of what you want.
+            </div>
           </Card.Body>
         </Card>
 
