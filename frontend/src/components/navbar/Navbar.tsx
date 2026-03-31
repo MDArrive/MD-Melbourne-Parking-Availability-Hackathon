@@ -5,7 +5,6 @@ import { Button, Navbar, Nav, Form, InputGroup } from "react-bootstrap";
 import useSidebar from "../../hooks/useSidebar";
 
 import NavbarThemeToggle from "./NavbarThemeToggle";
-import NavbarUser from "./NavbarUser";
 
 const NavbarComponent = () => {
   const { t } = useTranslation();
@@ -25,7 +24,6 @@ const NavbarComponent = () => {
       <Navbar.Collapse>
         <Nav className="navbar-align">
           <NavbarThemeToggle />
-          <NavbarUser />
         </Nav>
       </Navbar.Collapse>
     </Navbar>

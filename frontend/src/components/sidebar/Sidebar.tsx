@@ -1,9 +1,6 @@
 import React from "react";
 
-import PerfectScrollbar from "react-perfect-scrollbar";
-
 import useSidebar from "../../hooks/useSidebar";
-import SidebarFooter from "./SidebarFooter";
 import SidebarNav from "./SidebarNav";
 import Logo from "../../assets/img/logo.svg?react";
 
@@ -24,13 +21,11 @@ const Sidebar = ({ items, showFooter = true }: SidebarProps) => {
   return (
     <nav className={`sidebar ${!isOpen ? "collapsed" : ""}`}>
       <div className="sidebar-content">
-        <PerfectScrollbar>
           <a className="sidebar-brand" href="/">
             <Logo /> <span className="align-middle me-3">AI Learning</span>
           </a>
 
           <SidebarNav items={items} />
-        </PerfectScrollbar>
       </div>
     </nav>
   );
