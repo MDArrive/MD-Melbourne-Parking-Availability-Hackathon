@@ -139,11 +139,25 @@ const HomePage = () => {
 
         <Card className="mb-4">
           <Card.Body>
+            <Card.Title as="h5">How this works</Card.Title>
             <Card.Text>
-              Welcome! In this bootcamp you will use an AI coding assistant to build features in a
-              real full-stack application. Each exercise below has a set of tasks to complete.
-              Navigate to an exercise to read the detailed instructions, then use your AI assistant
-              to help you implement the solution.
+              You will use an AI coding assistant (Claude) to build real features in this application.
+              <strong> You do not need to understand the code yourself</strong> — the AI will do the
+              implementation for you.
+            </Card.Text>
+            <Card.Text as="div">
+              <ol className="mb-0">
+                <li>Click on an exercise below to see its tasks.</li>
+                <li><strong>Copy a task description</strong> from the exercise page.</li>
+                <li><strong>Paste it directly into Claude</strong> as a prompt.</li>
+                <li>Let Claude make the changes. Review what it did, then move to the next task.</li>
+                <li>Refresh this page to see your changes appear.</li>
+              </ol>
+            </Card.Text>
+            <Card.Text className="mt-2 mb-0 text-muted">
+              Work through the tasks in order — each one builds on the last. If Claude asks you a
+              question, just answer it. If something goes wrong, tell Claude what happened and it
+              will fix it.
             </Card.Text>
           </Card.Body>
         </Card>

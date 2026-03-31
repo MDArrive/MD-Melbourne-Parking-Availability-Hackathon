@@ -11,9 +11,7 @@ import {
   Spinner,
   Alert,
 } from "react-bootstrap";
-import { Plus } from "lucide-react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBell } from "@fortawesome/free-regular-svg-icons";
+import { Plus, Copy } from "lucide-react";
 
 // Import backend types (adjust path if needed, or define locally/shared)
 // Assuming types might be manually defined or generated elsewhere if not directly importable
@@ -53,6 +51,35 @@ const statusMap: Record<TaskStatus, string> = {
   [TaskStatus.UPCOMING]: "Upcoming",
   [TaskStatus.IN_PROGRESS]: "In Progress",
   [TaskStatus.COMPLETED]: "Completed",
+};
+
+const promptBlockStyle: React.CSSProperties = {
+  background: '#f8f9fa',
+  border: '1px solid #e9ecef',
+  borderRadius: '6px',
+  padding: '10px 14px',
+  fontSize: '0.9rem',
+  lineHeight: '1.5',
+  cursor: 'pointer',
+};
+
+const CopyablePrompt = ({ children }: { children: string }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(children);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div style={promptBlockStyle} onClick={handleCopy} title="Click to copy">
+      <div className="d-flex justify-content-between align-items-start gap-2">
+        <span>{children}</span>
+        <span className="text-muted flex-shrink-0" style={{ fontSize: '0.75rem' }}>
+          {copied ? 'Copied!' : <Copy size={14} />}
+        </span>
+      </div>
+    </div>
+  );
 };
 
 interface TaskTableProps {
@@ -168,38 +195,59 @@ const ExerciseTaskList = () => {
       <Container fluid className="p-0">
         <h1 className="h3 mb-3">Task List Exercise</h1>
 
-        {/* Introductory Blurb */}
         {showIntroAlert && (
-          <Alert 
-            variant="primary" 
-            className="alert-outline"
-            onClose={() => setShowIntroAlert(false)}
-            dismissible
-          >
-            <div className="alert-icon">
-              <FontAwesomeIcon icon={faBell} fixedWidth />
-            </div>
-            <div className="alert-message">
-              <strong>Welcome to the Task List Exercise!</strong>
-              <p className="mb-2">
-                This page demonstrates a basic task list connected to a backend API. 
-                The tasks you see below are fetched live from the database via 
-                <code>/api/exercises/tasks</code>.
+          <Card className="mb-4 border-primary">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <h5 className="mb-2">Welcome to the Task List Exercise!</h5>
+                  <p className="mb-2">
+                    This page shows a task list connected to a backend API. The tasks below are
+                    fetched live from the database — but some features are missing. Your job is
+                    to add them using Claude.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowIntroAlert(false)}
+                />
+              </div>
+
+              <div className="rounded p-3 mb-3" style={{ background: '#d1e7dd' }}>
+                <strong>How it works:</strong> Copy each task below (click the block to copy) and
+                paste it into Claude. Claude will make the code changes for you. After each task,
+                refresh this page to see your changes.
+              </div>
+
+              <h6 className="mb-3">Tasks</h6>
+
+              <div className="mb-3">
+                <div className="fw-semibold mb-1">1. Create Tasks</div>
+                <CopyablePrompt>Connect the 'New Task' button to the POST endpoint so users can create new tasks. The backend API already supports POST to /api/exercises/tasks.</CopyablePrompt>
+              </div>
+
+              <div className="mb-3">
+                <div className="fw-semibold mb-1">2. Update Task Status</div>
+                <CopyablePrompt>Add a checkbox or button to each task that lets users mark it as complete or incomplete by calling PUT /api/exercises/tasks/:id with a status update.</CopyablePrompt>
+              </div>
+
+              <div className="mb-3">
+                <div className="fw-semibold mb-1">3. Delete Tasks</div>
+                <CopyablePrompt>Add a delete button to each task that removes it by calling DELETE /api/exercises/tasks/:id. Show a confirmation before deleting.</CopyablePrompt>
+              </div>
+
+              <div className="mb-0">
+                <div className="fw-semibold mb-1">4. Edit Tasks</div>
+                <CopyablePrompt>Replace the 'View' button with an 'Edit' button that opens a form to edit the task name, description, and priority, then saves via PUT /api/exercises/tasks/:id.</CopyablePrompt>
+              </div>
+
+              <p className="text-muted mt-3 mb-0" style={{ fontSize: '0.85rem' }}>
+                <strong>Tip:</strong> If something breaks, just tell Claude what happened
+                (e.g. "I got an error when I clicked the button") and it will fix it.
               </p>
-              <p className="mb-1">
-                While the read functionality is complete, there are still features 
-                to implement as outlined in the project plan (
-                <a href="/docs/plans/01-Task-Example-API.md" target="_blank" rel="noopener noreferrer"><code>docs/plans/01-Task-Example-API.md</code></a>).
-                Your next steps are to implement the following, using AI assistance:
-              </p>
-              <ul>
-                <li>Connect the 'New Task' button to the POST endpoint.</li>
-                <li>Implement functionality to update task status (mark complete/incomplete) via the PUT endpoint.</li>
-                <li>Implement functionality to delete tasks via the DELETE endpoint.</li>
-                <li>Replace the 'View' button with an 'Edit' button and implement task editing functionality.</li>
-              </ul>
-            </div>
-          </Alert>
+            </Card.Body>
+          </Card>
         )}
 
         {isLoading && (
