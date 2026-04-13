@@ -1,66 +1,72 @@
-# AI-Assisted Development Bootcamp
+# AI-Assisted Development Practical
 
-A hands-on training application where you use an AI coding assistant to build features in a real full-stack app.
+A hands-on practical where you use an AI coding assistant to build features in a real full-stack app.
 
-## Prerequisites
+## Setting Up Your Computer
 
-Before you start, make sure you have installed:
+Before starting, you need Node.js and the project dependencies installed. **This is especially important on Windows**, where Node.js and npm can have PATH issues.
 
-- **Node.js** (version 18 or higher) — [download here](https://nodejs.org/)
-- **Git** — [download here](https://git-scm.com/downloads)
-- **An AI coding assistant** — e.g. [Claude Code](https://claude.ai/claude-code), GitHub Copilot, or Cursor
+Open Claude Code in this directory and give it this prompt:
+
+> Check if my computer is set up for this practical. I need Node.js 18 or higher. Check what version I have installed. If I don't have it or it's too old, help me install it. Then run `npm install` to install the project dependencies. After that, set up the database by running `npm run db:migrate:dev -w backend` and `npm run db:seed -w backend`. Finally, start the app with `npm run dev` and confirm both the backend and frontend are running. Tell me when I'm ready to go.
+
+Claude will handle the rest — including installing Node.js if needed, dealing with PATH issues, and setting up the database.
+
+If you don't have Claude Code installed yet, run:
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+This requires Node.js 18+. See [claude.ai/code](https://claude.ai/code) for details.
+
+---
+
+## The Scenario
+
+You have a running full-stack application — a React frontend talking to an Express backend with a Prisma database. The app works, but several features are incomplete. Your job is to build them, using AI to help you.
+
+## The Exercises
+
+There are 3 exercises, each teaching a different aspect of AI-assisted development:
+
+| # | Exercise | What You Build | Difficulty |
+|---|----------|---------------|-----------|
+| 1 | **Task List** | Add create, update, and delete to an existing task management UI | Easiest — start here |
+| 2 | **Car Park Availability** | Build a full-stack parking system from scratch — database, API, and dashboard | Medium |
+| 3 | **Analytics Chart** | Find an API endpoint and visualise the data with a charting library | Medium |
+
+Start with Exercise 1 and work your way through. Each exercise page in the app has detailed instructions explaining what to build.
 
 ## Getting Started
 
-### 1. Clone the repository
-
-Open a terminal and run:
-
-```bash
-git clone https://github.com/Rational-Partners/ai-training-practical.git
-cd ai-training-practical
-```
-
-### 2. Install dependencies
-
-```bash
-npm install
-```
-
-### 3. Set up the database
-
-```bash
-npm run db:migrate:dev -w backend
-npm run db:seed -w backend
-```
-
-### 4. Start the application
+1. Start the app (if it's not already running):
 
 ```bash
 npm run dev
 ```
 
-This will start both the backend (http://localhost:5001) and frontend (http://localhost:5173).
+2. Open **http://localhost:5173** in your browser — you'll see the homepage with links to each exercise.
 
-### 5. Open the app
+3. Open Claude Code in this directory:
 
-Go to **http://localhost:5173** in your browser. You will see the homepage with a list of exercises to complete.
+```bash
+claude
+```
 
-## What to do
+4. Pick an exercise from the app and start building. The exercise pages tell you exactly what to do.
 
-The app contains **three exercises**, each with a set of tasks. You will use your AI coding assistant to help you implement the solutions.
+## Tips
 
-1. **Exercise 1: Task List** — Add CRUD operations to an existing task management UI
-2. **Exercise 2: Car Park Availability** — Build a full-stack car park system from scratch
-3. **Exercise 3: Analytics Chart** — Fetch data and visualise it with a charting library
-
-Start with Exercise 1 and work your way through. Each exercise page has detailed instructions explaining what to build.
+- You don't need to understand the full codebase to start — that's what Claude is for
+- Talk to Claude in plain English. "Add a delete button to each task row" is a perfectly good prompt
+- Each exercise page has example prompts you can reveal if you get stuck
+- If Claude's explanation is too technical, ask it to explain more simply
+- The app hot-reloads — save a file and the browser updates automatically
 
 ## Troubleshooting
 
 | Problem | Solution |
 |---------|----------|
-| `npm install` fails | Make sure you have Node.js 18+ installed: `node --version` |
+| `npm install` fails | Make sure you have Node.js 18+: `node --version` |
 | Database errors | Re-run: `npm run db:migrate:dev -w backend && npm run db:seed -w backend` |
 | Backend won't start | Check `logs/backend.log` for errors |
 | Frontend won't start | Check `logs/frontend.log` for errors |
