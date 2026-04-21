@@ -1,6 +1,6 @@
 import React, { Suspense, ReactNode } from "react";
 import { Outlet } from "react-router-dom";
-import { Home, List, Car, PieChart, Zap } from "lucide-react";
+import { Home } from "lucide-react";
 
 import Wrapper from "../components/Wrapper";
 import Sidebar from "../components/sidebar/Sidebar";
@@ -19,28 +19,8 @@ const sidebarNavigation: { title: string; pages: SidebarItemsType[] }[] = [
     pages: [
       {
         href: "/",
+        title: "Home",
         icon: Home,
-        title: "Start Here",
-      },
-      {
-        href: "/exercises/tasks/list",
-        title: "Task List Exercise",
-        icon: List,
-      },
-      {
-        href: "/exercises/parking",
-        title: "Car Park Exercise",
-        icon: Car,
-      },
-      {
-        href: "/exercises/analytics-chart",
-        title: "Analytics Charts Exercise",
-        icon: PieChart,
-      },
-      {
-        href: "/exercises/stretch",
-        title: "Stretch Exercise",
-        icon: Zap,
       },
     ],
   },

@@ -149,7 +149,7 @@ const routes = [
     children: [
       {
         path: "",
-        element: <HomePage />,
+        element: <MelbourneParkingMap />,
       },
     ],
   },

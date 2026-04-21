@@ -34,6 +34,7 @@ export interface ZonePriority {
   amberCount: number;
   greenCount: number;
   score: number;
+  averageDurationMinutes: number | null;
 }
 
 export const fetchAndSync = async (): Promise<number> => {
@@ -52,6 +53,7 @@ export const fetchAndSync = async (): Promise<number> => {
     const records = data.results;
 
     for (const record of records) {
+      if (!record.kerbsideid || !record.zone_number || !record.location?.lat || !record.location?.lon) continue;
       await MelbourneRepository.upsertSensor({
         kerbsideId: record.kerbsideid,
         zoneNumber: record.zone_number,
@@ -86,6 +88,51 @@ export const getSensorsWithDuration = async (): Promise<SensorWithDuration[]> =>
   }));
 };
 
+export const captureSnapshot = async (): Promise<{
+  id: string;
+  capturedAt: Date;
+  sensorCount: number;
+}> => {
+  const sensors = await getSensorsWithDuration();
+  const snapshot = await MelbourneRepository.createSnapshot(
+    sensors.map((s) => ({
+      kerbsideId: s.kerbsideId,
+      zoneNumber: s.zoneNumber,
+      lat: s.lat,
+      lon: s.lon,
+      status: s.status,
+      durationMinutes: s.durationMinutes,
+    })),
+  );
+  return { id: snapshot.id, capturedAt: snapshot.capturedAt, sensorCount: snapshot.sensorCount };
+};
+
+export const listSnapshots = async (): Promise<
+  { id: string; capturedAt: Date; sensorCount: number }[]
+> => {
+  return MelbourneRepository.listSnapshots();
+};
+
+export const getSnapshotSensors = async (id: string): Promise<SensorWithDuration[]> => {
+  const snapshot = await MelbourneRepository.getSnapshotWithReadings(id);
+  if (!snapshot) {
+    const err: any = new Error(`Snapshot not found: ${id}`);
+    err.statusCode = 404;
+    throw err;
+  }
+  return snapshot.readings.map((r) => ({
+    id: r.id,
+    kerbsideId: r.kerbsideId,
+    zoneNumber: r.zoneNumber,
+    lat: r.lat,
+    lon: r.lon,
+    status: r.status,
+    occupancySince: null,
+    lastUpdated: snapshot.capturedAt,
+    durationMinutes: r.durationMinutes ?? null,
+  }));
+};
+
 export const getPriorityZones = async (): Promise<ZonePriority[]> => {
   const sensors = await getSensorsWithDuration();
 
@@ -110,9 +157,9 @@ export const getPriorityZones = async (): Promise<ZonePriority[]> => {
       if (sensor.status === 'Present') {
         occupiedBays++;
         const minutes = sensor.durationMinutes ?? 0;
-        if (minutes > 60) {
+        if (minutes > 12) {
           redCount++;
-        } else if (minutes >= 30) {
+        } else if (minutes >= 4) {
           amberCount++;
         } else {
           greenCount++;
@@ -122,6 +169,13 @@ export const getPriorityZones = async (): Promise<ZonePriority[]> => {
 
     const score = redCount * 3 + amberCount * 1;
 
+    const durations = zoneSensors
+      .filter(s => s.status === 'Present' && s.durationMinutes !== null)
+      .map(s => s.durationMinutes as number);
+    const averageDurationMinutes = durations.length > 0
+      ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+      : null;
+
     zones.push({
       zoneNumber,
       totalBays,
@@ -130,6 +184,7 @@ export const getPriorityZones = async (): Promise<ZonePriority[]> => {
       amberCount,
       greenCount,
       score,
+      averageDurationMinutes,
     });
   }
 

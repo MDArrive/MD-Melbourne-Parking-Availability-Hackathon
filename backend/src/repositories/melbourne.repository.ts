@@ -1,4 +1,4 @@
-import { PrismaClient, MelbourneSensor } from '@prisma/client';
+import { PrismaClient, MelbourneSensor, MelbourneSnapshot, MelbourneSnapshotReading } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -59,5 +59,62 @@ export const findAllSensors = async (): Promise<MelbourneSensor[]> => {
 export const findSensorsByZone = async (zoneNumber: number): Promise<MelbourneSensor[]> => {
   return prisma.melbourneSensor.findMany({
     where: { zoneNumber },
+  });
+};
+
+export interface SnapshotReadingInput {
+  kerbsideId: number;
+  zoneNumber: number;
+  lat: number;
+  lon: number;
+  status: string;
+  durationMinutes: number | null;
+}
+
+export const createSnapshot = async (
+  readings: SnapshotReadingInput[],
+): Promise<MelbourneSnapshot> => {
+  return prisma.$transaction(async (tx) => {
+    const snapshot = await tx.melbourneSnapshot.create({
+      data: {
+        sensorCount: readings.length,
+      },
+    });
+
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < readings.length; i += BATCH_SIZE) {
+      const batch = readings.slice(i, i + BATCH_SIZE);
+      await tx.melbourneSnapshotReading.createMany({
+        data: batch.map((r) => ({
+          snapshotId: snapshot.id,
+          kerbsideId: r.kerbsideId,
+          zoneNumber: r.zoneNumber,
+          lat: r.lat,
+          lon: r.lon,
+          status: r.status,
+          durationMinutes: r.durationMinutes ?? undefined,
+        })),
+      });
+    }
+
+    return snapshot;
+  });
+};
+
+export const listSnapshots = async (): Promise<
+  { id: string; capturedAt: Date; sensorCount: number }[]
+> => {
+  return prisma.melbourneSnapshot.findMany({
+    orderBy: { capturedAt: 'desc' },
+    select: { id: true, capturedAt: true, sensorCount: true },
+  });
+};
+
+export const getSnapshotWithReadings = async (
+  id: string,
+): Promise<(MelbourneSnapshot & { readings: MelbourneSnapshotReading[] }) | null> => {
+  return prisma.melbourneSnapshot.findUnique({
+    where: { id },
+    include: { readings: true },
   });
 };

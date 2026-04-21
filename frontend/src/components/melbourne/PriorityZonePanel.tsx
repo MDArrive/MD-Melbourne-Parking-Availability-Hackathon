@@ -19,10 +19,11 @@ export interface PriorityZone {
   zoneNumber: number;
   totalBays: number;
   occupiedBays: number;
-  redCount: number;    // occupied > 60 min
-  amberCount: number;  // occupied 30-60 min
-  greenCount: number;  // occupied < 30 min or free
-  score: number;       // (red*3) + (amber*1), higher = higher priority
+  redCount: number;
+  amberCount: number;
+  greenCount: number;
+  score: number;
+  averageDurationMinutes: number | null;
 }
 
 export interface PriorityZonePanelProps {
@@ -102,9 +103,16 @@ const ZoneCard = ({ zone }: { zone: PriorityZone }) => {
 
       {/* Bay stat row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '0.75rem', color: C.textMuted }}>
-          {zone.occupiedBays} / {zone.totalBays} bays occupied
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <span style={{ fontSize: '0.75rem', color: C.textMuted }}>
+            {zone.occupiedBays} / {zone.totalBays} bays occupied
+          </span>
+          {zone.averageDurationMinutes !== null && (
+            <span style={{ fontSize: '0.72rem', color: C.textMuted }}>
+              Avg stay: <strong style={{ color: C.textPrimary }}>{zone.averageDurationMinutes} min</strong>
+            </span>
+          )}
+        </div>
 
         {/* Overstay dots */}
         {zone.redCount > 0 && (
@@ -146,6 +154,9 @@ const PriorityZonePanel: React.FC<PriorityZonePanelProps> = ({ zones, loading })
         borderRadius: 10,
         boxShadow:    '0 1px 6px rgba(0,0,0,0.07)',
         overflow:     'hidden',
+        height:       '100%',
+        display:      'flex',
+        flexDirection:'column',
       }}
     >
       {/* Header */}
@@ -182,9 +193,10 @@ const PriorityZonePanel: React.FC<PriorityZonePanelProps> = ({ zones, loading })
       <Card.Body
         style={{
           padding:   '10px 12px',
-          maxHeight: 400,
+          flex:      1,
           overflowY: 'auto',
           background: C.surfaceAlt,
+          minHeight: 0,
         }}
       >
         {loading && (
