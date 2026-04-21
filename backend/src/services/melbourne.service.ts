@@ -382,6 +382,72 @@ export interface WeatherData {
   } | null;
 }
 
+export interface CarPark {
+  id: string;
+  name: string;
+  operator: string;
+  lat: number;
+  lon: number;
+  brand: 'wilson' | 'first' | 'nationwide';
+  capacity: number | null;
+  access: string | null;
+}
+
+export const getCarParks = async (): Promise<CarPark[]> => {
+  const query = `[out:json][timeout:30];
+(
+  node["amenity"="parking"]["operator"~"Wilson|First|Nationwide",i](-37.835,144.940,-37.800,144.990);
+  way["amenity"="parking"]["operator"~"Wilson|First|Nationwide",i](-37.835,144.940,-37.800,144.990);
+  node["amenity"="parking"]["name"~"Wilson|First|Nationwide",i](-37.835,144.940,-37.800,144.990);
+  way["amenity"="parking"]["name"~"Wilson|First|Nationwide",i](-37.835,144.940,-37.800,144.990);
+);
+out center tags;`;
+
+  const res = await fetch(
+    `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
+    { headers: { 'User-Agent': 'MelbourneParkingApp/1.0' } },
+  );
+  if (!res.ok) throw new Error(`Overpass error: ${res.status}`);
+  const data = await res.json();
+
+  const seen = new Set<string>();
+  const carparks: CarPark[] = [];
+
+  for (const el of data.elements ?? []) {
+    const lat: number | undefined = el.lat ?? el.center?.lat;
+    const lon: number | undefined = el.lon ?? el.center?.lon;
+    if (!lat || !lon) continue;
+
+    const tags = el.tags ?? {};
+    const name: string = tags.name ?? tags['name:en'] ?? 'Car Park';
+    const operator: string = tags.operator ?? tags.brand ?? '';
+    const combined = `${name} ${operator}`.toLowerCase();
+
+    let brand: CarPark['brand'] | null = null;
+    if (combined.includes('wilson')) brand = 'wilson';
+    else if (combined.includes('first parking') || combined.includes('first park')) brand = 'first';
+    else if (combined.includes('nationwide')) brand = 'nationwide';
+    else continue;
+
+    const key = `${lat.toFixed(5)},${lon.toFixed(5)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    carparks.push({
+      id: String(el.id),
+      name,
+      operator: operator || name,
+      lat,
+      lon,
+      brand,
+      capacity: tags.capacity ? Number(tags.capacity) : null,
+      access: tags.access ?? tags.opening_hours ?? null,
+    });
+  }
+
+  return carparks;
+};
+
 export interface NewsHeadline {
   title: string;
   url: string;

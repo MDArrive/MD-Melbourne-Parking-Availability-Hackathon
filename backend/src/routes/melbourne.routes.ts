@@ -13,6 +13,7 @@ import {
   handleHistoryCsv,
   handleGetWeather,
   handleGetNews,
+  handleGetCarParks,
 } from '../controllers/melbourne.controller';
 
 const router = Router();
@@ -52,5 +53,8 @@ router.get('/weather', asyncHandler(handleGetWeather));
 
 // GET /api/melbourne/news
 router.get('/news', asyncHandler(handleGetNews));
+
+// GET /api/melbourne/carparks
+router.get('/carparks', asyncHandler(handleGetCarParks));
 
 export default router;

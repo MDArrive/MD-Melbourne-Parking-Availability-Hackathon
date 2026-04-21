@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Spinner, Button } from 'react-bootstrap';
-import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { fetchApi } from '../../utils/apiClient';
 import PriorityZonePanel, { PriorityZone } from '../../components/melbourne/PriorityZonePanel';
@@ -13,6 +14,41 @@ const AMBER  = '#f59e0b';
 const RED    = '#ef4444';
 
 // ── Types ─────────────────────────────────────────────────────
+interface CarPark {
+  id: string;
+  name: string;
+  operator: string;
+  lat: number;
+  lon: number;
+  brand: 'wilson' | 'first' | 'nationwide';
+  capacity: number | null;
+  access: string | null;
+}
+
+const CARPARK_COLOURS: Record<CarPark['brand'], string> = {
+  wilson:     '#1d4ed8',
+  first:      '#ea580c',
+  nationwide: '#0891b2',
+};
+
+const CARPARK_LABELS: Record<CarPark['brand'], string> = {
+  wilson:     'Wilson',
+  first:      'First',
+  nationwide: 'Nationwide',
+};
+
+function carParkIcon(brand: CarPark['brand']) {
+  const color = CARPARK_COLOURS[brand];
+  const letter = brand === 'wilson' ? 'W' : brand === 'first' ? 'F' : 'N';
+  return L.divIcon({
+    html: `<div style="width:26px;height:26px;background:${color};border:2.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);color:#fff;font-weight:800;font-size:11px;line-height:1;">${letter}</span></div>`,
+    className: '',
+    iconSize: [26, 26],
+    iconAnchor: [13, 26],
+    popupAnchor: [0, -30],
+  });
+}
+
 interface NewsHeadline {
   title: string;
   url: string;
@@ -82,6 +118,8 @@ const MelbourneParkingMap: React.FC = () => {
   const [pickerValue,      setPickerValue]      = useState('');
   const [weather,          setWeather]          = useState<WeatherData | null>(null);
   const [news,             setNews]             = useState<NewsHeadline[]>([]);
+  const [carParks,         setCarParks]         = useState<CarPark[]>([]);
+  const [showCarParks,     setShowCarParks]     = useState(true);
 
   const toDatetimeLocal = (d: Date): string => {
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -202,6 +240,11 @@ const MelbourneParkingMap: React.FC = () => {
     load();
     const id = setInterval(load, 600_000);
     return () => clearInterval(id);
+  }, []);
+
+  // Car parks — load once (operator locations don't change often)
+  useEffect(() => {
+    fetchApi<CarPark[]>('/melbourne/carparks').then(d => setCarParks(d || [])).catch(() => {});
   }, []);
 
   // News headlines — load once then every 30 minutes
@@ -371,6 +414,19 @@ const MelbourneParkingMap: React.FC = () => {
           )}
         </Button>
         <button
+          onClick={() => setShowCarParks(v => !v)}
+          style={{
+            background: showCarParks ? '#1e3a5f' : 'transparent',
+            border: '1.5px solid #1d4ed8',
+            color: showCarParks ? '#fff' : '#1d4ed8',
+            borderRadius: 6, padding: '5px 14px',
+            fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer',
+            marginLeft: 8,
+          }}
+        >
+          🅿 Car Parks
+        </button>
+        <button
           onClick={() => setHistoryMode(h => !h)}
           style={{
             background: historyMode ? '#5F016F' : 'transparent',
@@ -487,6 +543,28 @@ const MelbourneParkingMap: React.FC = () => {
                   </Popup>
                 </CircleMarker>
               ))}
+              {showCarParks && carParks.map(cp => (
+                <Marker
+                  key={cp.id}
+                  position={[cp.lat, cp.lon]}
+                  icon={carParkIcon(cp.brand)}
+                >
+                  <Popup>
+                    <div style={{ fontSize: '0.82rem', minWidth: 150 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 4, color: CARPARK_COLOURS[cp.brand] }}>
+                        {CARPARK_LABELS[cp.brand]} Parking
+                      </div>
+                      <div style={{ color: '#374151', marginBottom: 2, fontWeight: 600 }}>{cp.name}</div>
+                      {cp.capacity && (
+                        <div style={{ color: '#6b7280', fontSize: '0.76rem' }}>Capacity: {cp.capacity} bays</div>
+                      )}
+                      {cp.access && (
+                        <div style={{ color: '#6b7280', fontSize: '0.76rem' }}>Hours: {cp.access}</div>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
             </MapContainer>
           )}
 
@@ -529,6 +607,14 @@ const MelbourneParkingMap: React.FC = () => {
               <LegendRow color={GREEN} label="Free / &lt; 4 min" />
               <LegendRow color={AMBER} label="4 – 12 min" />
               <LegendRow color={RED}   label="&gt; 12 min" />
+              {showCarParks && carParks.length > 0 && (
+                <>
+                  <div style={{ height: 1, background: '#e5e7eb', margin: '2px 0' }} />
+                  <LegendPin color={CARPARK_COLOURS.wilson}     label="Wilson Parking" />
+                  <LegendPin color={CARPARK_COLOURS.first}      label="First Parking" />
+                  <LegendPin color={CARPARK_COLOURS.nationwide} label="Nationwide Parking" />
+                </>
+              )}
             </div>
           )}
         </div>
@@ -602,6 +688,18 @@ const LegendRow = ({ color, label }: { color: string; label: string }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
     <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: color, flexShrink: 0 }} />
     <span style={{ color: '#374151' }} dangerouslySetInnerHTML={{ __html: label }} />
+  </div>
+);
+
+const LegendPin = ({ color, label }: { color: string; label: string }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+    <span style={{
+      display: 'inline-block', width: 12, height: 12, flexShrink: 0,
+      background: color, border: '2px solid #fff',
+      borderRadius: '50% 50% 50% 0', transform: 'rotate(-45deg)',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+    }} />
+    <span style={{ color: '#374151' }}>{label}</span>
   </div>
 );
 

@@ -81,3 +81,9 @@ export const handleGetNews = async (req: Request, res: Response, next: NextFunct
     res.json(await MelbourneService.getNewsHeadlines());
   } catch (err) { next(err); }
 };
+
+export const handleGetCarParks = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.json(await MelbourneService.getCarParks());
+  } catch (err) { next(err); }
+};
