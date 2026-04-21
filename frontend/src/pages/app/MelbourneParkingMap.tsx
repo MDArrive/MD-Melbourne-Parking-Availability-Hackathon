@@ -13,6 +13,23 @@ const AMBER  = '#f59e0b';
 const RED    = '#ef4444';
 
 // ── Types ─────────────────────────────────────────────────────
+interface WeatherData {
+  current: {
+    temp: number | null;
+    description: string;
+    icon: string;
+    rainChance: number;
+    tempMax: number | null;
+    tempMin: number | null;
+  };
+  tomorrow: {
+    description: string;
+    tempMax: number | null;
+    tempMin: number | null;
+    rainChance: number;
+  } | null;
+}
+
 interface SnapshotMeta {
   id: string;
   capturedAt: string;
@@ -58,6 +75,7 @@ const MelbourneParkingMap: React.FC = () => {
   const [snapshots,        setSnapshots]        = useState<SnapshotMeta[]>([]);
   const [selectedSnapshot, setSelectedSnapshot] = useState<SnapshotMeta | null>(null);
   const [pickerValue,      setPickerValue]      = useState('');
+  const [weather,          setWeather]          = useState<WeatherData | null>(null);
 
   const toDatetimeLocal = (d: Date): string => {
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -172,6 +190,14 @@ const MelbourneParkingMap: React.FC = () => {
       .finally(() => setLoading(false));
   }, [selectedSnapshot]);
 
+  // Weather — load once then every 10 minutes
+  useEffect(() => {
+    const load = () => fetchApi<WeatherData>('/melbourne/weather').then(d => setWeather(d)).catch(() => {});
+    load();
+    const id = setInterval(load, 600_000);
+    return () => clearInterval(id);
+  }, []);
+
   const handleRefreshNow = async () => {
     setRefreshing(true);
     try {
@@ -194,6 +220,47 @@ const MelbourneParkingMap: React.FC = () => {
   return (
     <React.Fragment>
       <Helmet title="Melbourne Parking" />
+
+      {/* ── Weather strip ── */}
+      {weather && (
+        <div style={{
+          background: 'linear-gradient(90deg, #1A0020 0%, #3b0048 100%)',
+          color: '#e9d5f5',
+          padding: '5px 20px',
+          fontSize: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 18,
+          flexWrap: 'wrap',
+        }}>
+          <span style={{ fontWeight: 700, color: '#d8b4fe', letterSpacing: '0.03em' }}>
+            Melbourne Weather
+          </span>
+          <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.2)' }} />
+          {weather.current.temp !== null && (
+            <span>{weather.current.temp}°C</span>
+          )}
+          <span>{weather.current.description}</span>
+          {(weather.current.tempMax !== null || weather.current.tempMin !== null) && (
+            <span style={{ color: '#c4b5fd' }}>
+              {weather.current.tempMin !== null ? `${weather.current.tempMin}°` : ''}
+              {weather.current.tempMin !== null && weather.current.tempMax !== null ? ' / ' : ''}
+              {weather.current.tempMax !== null ? `${weather.current.tempMax}°` : ''}
+            </span>
+          )}
+          <span style={{ color: '#93c5fd' }}>☔ {weather.current.rainChance}% chance of rain</span>
+          {weather.tomorrow && (
+            <>
+              <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.2)' }} />
+              <span style={{ color: '#a5b4fc' }}>
+                Tomorrow: {weather.tomorrow.description}
+                {weather.tomorrow.tempMax !== null ? ` ${weather.tomorrow.tempMax}°` : ''}
+                {' '}· ☔ {weather.tomorrow.rainChance}%
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ── Stat bar ── */}
       <div
@@ -297,7 +364,7 @@ const MelbourneParkingMap: React.FC = () => {
       )}
 
       {/* ── Resizable split: map + priority panel ── */}
-      <div style={{ display: 'flex', height: 'calc(100vh - 60px)', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', height: 'calc(100vh - 90px)', overflow: 'hidden' }}>
 
         {/* Left pane — map */}
         <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>

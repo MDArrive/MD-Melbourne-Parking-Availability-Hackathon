@@ -362,3 +362,48 @@ export const getPriorityZones = async (): Promise<ZonePriority[]> => {
 
   return zones.sort((a, b) => b.score - a.score);
 };
+
+const BOM_GEOHASH = 'r1r0fup'; // Melbourne CBD 3000
+
+export interface WeatherData {
+  current: {
+    temp: number | null;
+    description: string;
+    icon: string;
+    rainChance: number;
+    tempMax: number | null;
+    tempMin: number | null;
+  };
+  tomorrow: {
+    description: string;
+    tempMax: number | null;
+    tempMin: number | null;
+    rainChance: number;
+  } | null;
+}
+
+export const getWeather = async (): Promise<WeatherData> => {
+  const url = `https://api.weather.bom.gov.au/v1/locations/${BOM_GEOHASH}/forecasts/daily`;
+  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+  if (!res.ok) throw new Error(`BOM API error: ${res.status}`);
+  const json = await res.json();
+  const days: any[] = json.data ?? [];
+  const today = days[0] ?? null;
+  const tomorrow = days[1] ?? null;
+  return {
+    current: {
+      temp: today?.now?.temp_now ?? null,
+      description: today?.short_text ?? 'No data',
+      icon: today?.icon_descriptor ?? 'unknown',
+      rainChance: today?.rain?.chance ?? 0,
+      tempMax: today?.temp_max ?? null,
+      tempMin: today?.now?.temp_later ?? null,
+    },
+    tomorrow: tomorrow ? {
+      description: tomorrow.short_text ?? '',
+      tempMax: tomorrow.temp_max ?? null,
+      tempMin: tomorrow.temp_min ?? null,
+      rainChance: tomorrow.rain?.chance ?? 0,
+    } : null,
+  };
+};

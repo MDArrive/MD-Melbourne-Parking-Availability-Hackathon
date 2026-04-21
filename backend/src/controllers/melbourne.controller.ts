@@ -69,3 +69,9 @@ export const handleHistoryCsv = async (req: Request, res: Response, next: NextFu
     res.send(csv);
   } catch (err) { next(err); }
 };
+
+export const handleGetWeather = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.json(await MelbourneService.getWeather());
+  } catch (err) { next(err); }
+};
