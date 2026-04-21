@@ -382,10 +382,10 @@ const MelbourneReporting: React.FC = () => {
             <Button
               size="sm"
               variant="outline-secondary"
-              onClick={() => downloadCsv('/melbourne/reports/history/csv?hours=24')}
+              onClick={() => downloadCsv(`/melbourne/reports/history/csv?hours=${hours}`)}
               style={{ fontWeight: 600 }}
             >
-              Download History CSV (24h)
+              Download History CSV ({hours}h)
             </Button>
           </div>
         </div>

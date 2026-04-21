@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Spinner, Button } from 'react-bootstrap';
-import { MapContainer, TileLayer, CircleMarker, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { fetchApi } from '../../utils/apiClient';
@@ -23,6 +23,8 @@ interface CarPark {
   brand: 'wilson' | 'first' | 'nationwide';
   capacity: number | null;
   access: string | null;
+  address: string | null;
+  website: string | null;
 }
 
 const CARPARK_COLOURS: Record<CarPark['brand'], string> = {
@@ -92,8 +94,8 @@ interface Sensor {
 // ── Colour helper ─────────────────────────────────────────────
 function sensorColour(sensor: Sensor): string {
   if (sensor.status !== 'Present' || sensor.durationMinutes === null) return GREEN;
-  if (sensor.durationMinutes < 4)   return GREEN;
-  if (sensor.durationMinutes <= 12) return AMBER;
+  if (sensor.durationMinutes <= 60)  return GREEN;
+  if (sensor.durationMinutes <= 120) return AMBER;
   return RED;
 }
 
@@ -106,6 +108,19 @@ function formatDuration(minutes: number | null): string {
 const toDatetimeLocal = (d: Date): string => {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+// ── Map fly-to controller (must be inside MapContainer) ───────
+const MapFlyTo = ({ zoneNumber, sensors }: { zoneNumber: number | null; sensors: Array<Sensor & { colour: string }> }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (zoneNumber === null) return;
+    const pts = sensors.filter(s => s.zoneNumber === zoneNumber);
+    if (!pts.length) return;
+    const bounds = L.latLngBounds(pts.map(s => [s.lat, s.lon] as [number, number]));
+    map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 17, duration: 0.8 });
+  }, [zoneNumber, map, sensors]);
+  return null;
 };
 
 // ── Main component ────────────────────────────────────────────
@@ -126,6 +141,7 @@ const MelbourneParkingMap: React.FC = () => {
   const [news,             setNews]             = useState<NewsHeadline[]>([]);
   const [carParks,         setCarParks]         = useState<CarPark[]>([]);
   const [showCarParks,     setShowCarParks]     = useState(true);
+  const [selectedZone,     setSelectedZone]     = useState<number | null>(null);
 
   const findNearestSnapshot = (isoString: string, snaps: SnapshotMeta[]): SnapshotMeta | null => {
     if (!snaps.length || !isoString) return null;
@@ -498,7 +514,7 @@ const MelbourneParkingMap: React.FC = () => {
                   fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
                 }}
               >
-                {new Date(snap.capturedAt).toLocaleTimeString()}
+                {new Date(snap.capturedAt).toLocaleString('en-AU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
               </button>
             ))}
           </div>
@@ -533,6 +549,7 @@ const MelbourneParkingMap: React.FC = () => {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
+              <MapFlyTo zoneNumber={selectedZone} sensors={colouredSensors} />
               {colouredSensors.filter(s => visibleColours.has(s.colour)).map(sensor => (
                 <CircleMarker
                   key={sensor.id}
@@ -567,13 +584,27 @@ const MelbourneParkingMap: React.FC = () => {
                   key={cp.id}
                   position={[cp.lat, cp.lon]}
                   icon={carParkIcon(cp.brand)}
+                  title={cp.address ?? cp.name}
                 >
                   <Popup>
-                    <div style={{ fontSize: '0.82rem', minWidth: 150 }}>
+                    <div style={{ fontSize: '0.82rem', minWidth: 160 }}>
                       <div style={{ fontWeight: 700, marginBottom: 4, color: CARPARK_COLOURS[cp.brand] }}>
-                        {CARPARK_LABELS[cp.brand]} Parking
+                        {cp.website ? (
+                          <a href={cp.website} target="_blank" rel="noopener noreferrer"
+                            style={{ color: CARPARK_COLOURS[cp.brand], textDecoration: 'none' }}
+                            onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+                            onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
+                          >
+                            {CARPARK_LABELS[cp.brand]} Parking ↗
+                          </a>
+                        ) : (
+                          `${CARPARK_LABELS[cp.brand]} Parking`
+                        )}
                       </div>
                       <div style={{ color: '#374151', marginBottom: 2, fontWeight: 600 }}>{cp.name}</div>
+                      {cp.address && (
+                        <div style={{ color: '#6b7280', fontSize: '0.76rem', marginBottom: 2 }}>{cp.address}</div>
+                      )}
                       {cp.capacity && (
                         <div style={{ color: '#6b7280', fontSize: '0.76rem' }}>Capacity: {cp.capacity} bays</div>
                       )}
@@ -623,9 +654,9 @@ const MelbourneParkingMap: React.FC = () => {
                 backdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', gap: 5,
               }}
             >
-              <LegendRow color={GREEN} label="Free / < 4 min" />
-              <LegendRow color={AMBER} label="4 – 12 min" />
-              <LegendRow color={RED}   label="> 12 min" />
+              <LegendRow color={GREEN} label="Free / 0 – 60 min" />
+              <LegendRow color={AMBER} label="61 – 120 min" />
+              <LegendRow color={RED}   label="> 120 min" />
               {showCarParks && carParks.length > 0 && (
                 <>
                   <div style={{ height: 1, background: '#e5e7eb', margin: '2px 0' }} />
@@ -664,7 +695,7 @@ const MelbourneParkingMap: React.FC = () => {
             background: '#faf7fa',
           }}
         >
-          <PriorityZonePanel zones={priorityZones} loading={loading} />
+          <PriorityZonePanel zones={priorityZones} loading={loading} onSelect={setSelectedZone} />
         </div>
 
       </div>
@@ -683,6 +714,10 @@ const StatPill = ({
 }) => (
   <div
     onClick={onToggle}
+    role={onToggle ? 'button' : undefined}
+    tabIndex={onToggle ? 0 : undefined}
+    onKeyDown={onToggle ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } } : undefined}
+    aria-pressed={onToggle ? active : undefined}
     title={onToggle ? (active ? `Hide ${label}` : `Show ${label}`) : undefined}
     style={{
       display: 'flex', alignItems: 'center', gap: 5,

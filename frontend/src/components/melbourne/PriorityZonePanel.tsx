@@ -29,6 +29,7 @@ export interface PriorityZone {
 export interface PriorityZonePanelProps {
   zones: PriorityZone[];
   loading: boolean;
+  onSelect?: (zoneNumber: number) => void;
 }
 
 // ── Priority helpers ──────────────────────────────────────────
@@ -39,7 +40,7 @@ const getPriority = (score: number): { label: string; colour: string } => {
 };
 
 // ── Zone card ─────────────────────────────────────────────────
-const ZoneCard = ({ zone }: { zone: PriorityZone }) => {
+const ZoneCard = ({ zone, onSelect }: { zone: PriorityZone; onSelect?: (zoneNumber: number) => void }) => {
   const priority = getPriority(zone.score);
   const total    = zone.totalBays;
 
@@ -55,6 +56,11 @@ const ZoneCard = ({ zone }: { zone: PriorityZone }) => {
 
   return (
     <div
+      onClick={() => onSelect?.(zone.zoneNumber)}
+      role={onSelect ? 'button' : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      onKeyDown={onSelect ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(zone.zoneNumber); } } : undefined}
+      title={onSelect ? `Navigate to Zone ${zone.zoneNumber}` : undefined}
       style={{
         background:   C.surface,
         border:       `1px solid ${C.border}`,
@@ -62,7 +68,11 @@ const ZoneCard = ({ zone }: { zone: PriorityZone }) => {
         borderRadius: 8,
         padding:      '10px 12px',
         marginBottom: 8,
+        cursor:       onSelect ? 'pointer' : 'default',
+        transition:   'box-shadow 0.15s',
       }}
+      onMouseEnter={onSelect ? (e) => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(95,1,111,0.18)'; } : undefined}
+      onMouseLeave={onSelect ? (e) => { e.currentTarget.style.boxShadow = 'none'; } : undefined}
     >
       {/* Header row: zone number + priority badge */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -120,7 +130,7 @@ const ZoneCard = ({ zone }: { zone: PriorityZone }) => {
             {Array.from({ length: dotsToRender }).map((_, i) => (
               <span
                 key={i}
-                title="Bay occupied > 60 min"
+                title="Bay occupied > 120 min"
                 style={{
                   display:      'inline-block',
                   width:        8,
@@ -144,7 +154,7 @@ const ZoneCard = ({ zone }: { zone: PriorityZone }) => {
 };
 
 // ── Panel ─────────────────────────────────────────────────────
-const PriorityZonePanel: React.FC<PriorityZonePanelProps> = ({ zones, loading }) => {
+const PriorityZonePanel: React.FC<PriorityZonePanelProps> = ({ zones, loading, onSelect }) => {
   const highPriorityCount = zones.filter(z => z.score > 10).length;
 
   return (
@@ -213,7 +223,7 @@ const PriorityZonePanel: React.FC<PriorityZonePanelProps> = ({ zones, loading })
         )}
 
         {!loading && zones.map(zone => (
-          <ZoneCard key={zone.zoneNumber} zone={zone} />
+          <ZoneCard key={zone.zoneNumber} zone={zone} onSelect={onSelect} />
         ))}
       </Card.Body>
 
