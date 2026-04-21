@@ -112,4 +112,6 @@ model MelbourneSnapshotReading {
   durationMinutes Int?
 
   @@index([snapshotId])
+  @@index([zoneNumber])
+  @@index([kerbsideId])
 } 

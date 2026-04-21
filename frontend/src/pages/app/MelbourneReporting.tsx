@@ -11,7 +11,7 @@ const GREEN  = '#22c55e';
 const AMBER  = '#f59e0b';
 const RED    = '#ef4444';
 
-const API_BASE = 'http://localhost:5001/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
 
 // ── Types ─────────────────────────────────────────────────────
 interface OccupancyPoint {
@@ -143,8 +143,7 @@ const MelbourneReporting: React.FC = () => {
     setLoadingZone(true);
     try {
       const data = await fetchApi<ZoneSummary[]>('/melbourne/reports/zone-summary');
-      const sorted = (data || []).sort((a, b) => b.occupancyPercent - a.occupancyPercent);
-      setZones(sorted);
+      setZones(data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load zone data');
     } finally {

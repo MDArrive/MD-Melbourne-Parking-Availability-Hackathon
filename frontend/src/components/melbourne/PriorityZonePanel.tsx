@@ -145,7 +145,7 @@ const ZoneCard = ({ zone }: { zone: PriorityZone }) => {
 
 // ── Panel ─────────────────────────────────────────────────────
 const PriorityZonePanel: React.FC<PriorityZonePanelProps> = ({ zones, loading }) => {
-  const highPriorityCount = zones.filter(z => z.score > 5).length;
+  const highPriorityCount = zones.filter(z => z.score > 10).length;
 
   return (
     <Card

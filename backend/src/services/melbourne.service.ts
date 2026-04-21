@@ -4,6 +4,26 @@ import * as MelbourneRepository from '../repositories/melbourne.repository';
 const MELBOURNE_API_BASE = 'https://data.melbourne.vic.gov.au/api/explore/v2.1/catalog/datasets';
 const SENSORS_ENDPOINT = '/on-street-parking-bay-sensors/records';
 const PAGE_LIMIT = 100;
+const MAX_PAGES = 100; // safety cap: 100 × 100 = 10,000 sensors max
+
+// ── Simple in-process cache ───────────────────────────────────
+interface CacheEntry<T> { data: T; fetchedAt: number; }
+const _cache = new Map<string, CacheEntry<unknown>>();
+
+async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
+  const hit = _cache.get(key) as CacheEntry<T> | undefined;
+  if (hit && Date.now() - hit.fetchedAt < ttlMs) return hit.data;
+  const data = await fn();
+  _cache.set(key, { data, fetchedAt: Date.now() });
+  return data;
+}
+
+// ── Duration categorisation (single source of truth) ─────────
+export function categorizeDuration(minutes: number | null): 'green' | 'amber' | 'red' {
+  if (minutes === null || minutes < 4) return 'green';
+  if (minutes <= 12) return 'amber';
+  return 'red';
+}
 
 interface MelbourneApiRecord {
   lastupdated: string;
@@ -38,12 +58,13 @@ export interface ZonePriority {
 }
 
 export const fetchAndSync = async (): Promise<number> => {
+  const allRecords: MelbourneRepository.SensorUpsertData[] = [];
   let offset = 0;
-  let totalSynced = 0;
+  let page = 0;
 
-  while (true) {
+  while (page < MAX_PAGES) {
     const url = `${MELBOURNE_API_BASE}${SENSORS_ENDPOINT}?limit=${PAGE_LIMIT}&offset=${offset}`;
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
 
     if (!response.ok) {
       throw new Error(`Melbourne API request failed: ${response.status} ${response.statusText}`);
@@ -54,7 +75,7 @@ export const fetchAndSync = async (): Promise<number> => {
 
     for (const record of records) {
       if (!record.kerbsideid || !record.zone_number || !record.location?.lat || !record.location?.lon) continue;
-      await MelbourneRepository.upsertSensor({
+      allRecords.push({
         kerbsideId: record.kerbsideid,
         zoneNumber: record.zone_number,
         lat: record.location.lat,
@@ -64,15 +85,18 @@ export const fetchAndSync = async (): Promise<number> => {
       });
     }
 
-    totalSynced += records.length;
     offset += PAGE_LIMIT;
+    page++;
 
-    if (records.length < PAGE_LIMIT) {
-      break;
-    }
+    if (records.length < PAGE_LIMIT) break;
   }
 
-  return totalSynced;
+  if (page === MAX_PAGES) {
+    console.warn(`fetchAndSync hit MAX_PAGES (${MAX_PAGES}) safety cap`);
+  }
+
+  await MelbourneRepository.upsertSensors(allRecords);
+  return allRecords.length;
 };
 
 export const getSensorsWithDuration = async (): Promise<SensorWithDuration[]> => {
@@ -159,14 +183,10 @@ export const getOccupancyOverTime = async (hours: number): Promise<OccupancyOver
     for (const reading of snapshot.readings) {
       if (reading.status === 'Present') {
         occupiedCount++;
-        const minutes = reading.durationMinutes;
-        if (minutes === null || minutes < 4) {
-          greenCount++;
-        } else if (minutes <= 12) {
-          amberCount++;
-        } else {
-          redCount++;
-        }
+        const cat = categorizeDuration(reading.durationMinutes);
+        if (cat === 'green') greenCount++;
+        else if (cat === 'amber') amberCount++;
+        else redCount++;
       }
     }
 
@@ -226,15 +246,11 @@ export const getZoneSummary = async (): Promise<ZoneSummaryRow[]> => {
     for (const reading of readings) {
       if (reading.status === 'Present') {
         occupiedBays++;
-        const minutes = reading.durationMinutes;
-        if (minutes !== null) durations.push(minutes);
-        if (minutes === null || minutes < 4) {
-          greenCount++;
-        } else if (minutes <= 12) {
-          amberCount++;
-        } else {
-          redCount++;
-        }
+        if (reading.durationMinutes !== null) durations.push(reading.durationMinutes);
+        const cat = categorizeDuration(reading.durationMinutes);
+        if (cat === 'green') greenCount++;
+        else if (cat === 'amber') amberCount++;
+        else redCount++;
       }
     }
 
@@ -328,14 +344,10 @@ export const getPriorityZones = async (): Promise<ZonePriority[]> => {
     for (const sensor of zoneSensors) {
       if (sensor.status === 'Present') {
         occupiedBays++;
-        const minutes = sensor.durationMinutes ?? 0;
-        if (minutes > 12) {
-          redCount++;
-        } else if (minutes >= 4) {
-          amberCount++;
-        } else {
-          greenCount++;
-        }
+        const cat = categorizeDuration(sensor.durationMinutes);
+        if (cat === 'red') redCount++;
+        else if (cat === 'amber') amberCount++;
+        else greenCount++;
       }
     }
 
@@ -394,6 +406,10 @@ export interface CarPark {
 }
 
 export const getCarParks = async (): Promise<CarPark[]> => {
+  return cached('carparks', 30 * 60 * 1000, _fetchCarParks);
+};
+
+const _fetchCarParks = async (): Promise<CarPark[]> => {
   const query = `[out:json][timeout:30];
 (
   node["amenity"="parking"]["operator"~"Wilson|First|Nationwide",i](-37.835,144.940,-37.800,144.990);
@@ -453,55 +469,67 @@ export interface NewsHeadline {
   url: string;
 }
 
+const isHttpUrl = (u: string): boolean => {
+  try { return ['http:', 'https:'].includes(new URL(u).protocol); } catch { return false; }
+};
+
 export const getNewsHeadlines = async (): Promise<NewsHeadline[]> => {
-  const rssUrl = 'https://news.google.com/rss/search?q=parking+melbourne&hl=en-AU&gl=AU&ceid=AU:en';
-  const res = await fetch(rssUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-  if (!res.ok) throw new Error(`News RSS error: ${res.status}`);
-  const xml = await res.text();
+  return cached('news', 30 * 60 * 1000, async () => {
+    const rssUrl = 'https://news.google.com/rss/search?q=parking+melbourne&hl=en-AU&gl=AU&ceid=AU:en';
+    const res = await fetch(rssUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error(`News RSS error: ${res.status}`);
+    const xml = await res.text();
 
-  const headlines: NewsHeadline[] = [];
-  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-  let match;
+    const headlines: NewsHeadline[] = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    let match;
 
-  while ((match = itemRegex.exec(xml)) !== null) {
-    const itemXml = match[1];
-    const titleMatch = /<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/.exec(itemXml);
-    const linkMatch = /<link>([^<]+)<\/link>/.exec(itemXml);
-    const guidMatch = /<guid[^>]*>([^<]+)<\/guid>/.exec(itemXml);
+    while ((match = itemRegex.exec(xml)) !== null) {
+      const itemXml = match[1];
+      const titleMatch = /<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/.exec(itemXml);
+      const linkMatch = /<link>([^<]+)<\/link>/.exec(itemXml);
+      const guidMatch = /<guid[^>]*>([^<]+)<\/guid>/.exec(itemXml);
 
-    if (titleMatch) {
-      const rawTitle = titleMatch[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').trim();
-      const title = rawTitle.replace(/ - [^-]+$/, '').trim();
-      const url = (linkMatch?.[1] ?? guidMatch?.[1] ?? '').trim();
-      if (title && url) headlines.push({ title, url });
+      if (titleMatch) {
+        const rawTitle = titleMatch[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').trim();
+        const title = rawTitle.replace(/ - [^-]+$/, '').trim();
+        const url = (linkMatch?.[1] ?? guidMatch?.[1] ?? '').trim();
+        if (title && url && isHttpUrl(url)) headlines.push({ title, url });
+      }
     }
-  }
 
-  return headlines.slice(0, 12);
+    return headlines.slice(0, 12);
+  });
+};
+
+export const pruneOldSnapshots = async (olderThanDays = 7): Promise<number> => {
+  return MelbourneRepository.pruneOldSnapshots(olderThanDays * 24 * 60 * 60 * 1000);
 };
 
 export const getWeather = async (): Promise<WeatherData> => {
-  const url = `https://api.weather.bom.gov.au/v1/locations/${BOM_GEOHASH}/forecasts/daily`;
-  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-  if (!res.ok) throw new Error(`BOM API error: ${res.status}`);
-  const json = await res.json();
-  const days: any[] = json.data ?? [];
-  const today = days[0] ?? null;
-  const tomorrow = days[1] ?? null;
-  return {
-    current: {
-      temp: today?.now?.temp_now ?? null,
-      description: today?.short_text ?? 'No data',
-      icon: today?.icon_descriptor ?? 'unknown',
-      rainChance: today?.rain?.chance ?? 0,
-      tempMax: today?.temp_max ?? null,
-      tempMin: today?.now?.temp_later ?? null,
-    },
-    tomorrow: tomorrow ? {
-      description: tomorrow.short_text ?? '',
-      tempMax: tomorrow.temp_max ?? null,
-      tempMin: tomorrow.temp_min ?? null,
-      rainChance: tomorrow.rain?.chance ?? 0,
-    } : null,
-  };
+  return cached('weather', 10 * 60 * 1000, async () => {
+    const url = `https://api.weather.bom.gov.au/v1/locations/${BOM_GEOHASH}/forecasts/daily`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error(`BOM API error: ${res.status}`);
+    const json = await res.json();
+    const days: any[] = json.data ?? [];
+    const today = days[0] ?? null;
+    const tomorrow = days[1] ?? null;
+    return {
+      current: {
+        temp: today?.now?.temp_now ?? null,
+        description: today?.short_text ?? 'No data',
+        icon: today?.icon_descriptor ?? 'unknown',
+        rainChance: today?.rain?.chance ?? 0,
+        tempMax: today?.temp_max ?? null,
+        tempMin: today?.temp_min ?? null, // daily minimum, not tonight's low
+      },
+      tomorrow: tomorrow ? {
+        description: tomorrow.short_text ?? '',
+        tempMax: tomorrow.temp_max ?? null,
+        tempMin: tomorrow.temp_min ?? null,
+        rainChance: tomorrow.rain?.chance ?? 0,
+      } : null,
+    };
+  });
 };

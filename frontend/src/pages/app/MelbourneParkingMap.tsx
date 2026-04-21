@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Spinner, Button } from 'react-bootstrap';
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup } from 'react-leaflet';
@@ -102,6 +102,12 @@ function formatDuration(minutes: number | null): string {
   return `${minutes} min`;
 }
 
+// Defined outside component — no dependency on state, no re-creation on render
+const toDatetimeLocal = (d: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 // ── Main component ────────────────────────────────────────────
 const MelbourneParkingMap: React.FC = () => {
   const [sensors,          setSensors]          = useState<Sensor[]>([]);
@@ -120,11 +126,6 @@ const MelbourneParkingMap: React.FC = () => {
   const [news,             setNews]             = useState<NewsHeadline[]>([]);
   const [carParks,         setCarParks]         = useState<CarPark[]>([]);
   const [showCarParks,     setShowCarParks]     = useState(true);
-
-  const toDatetimeLocal = (d: Date): string => {
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  };
 
   const findNearestSnapshot = (isoString: string, snaps: SnapshotMeta[]): SnapshotMeta | null => {
     if (!snaps.length || !isoString) return null;
@@ -267,12 +268,17 @@ const MelbourneParkingMap: React.FC = () => {
     }
   };
 
-  // ── Stat counts ───────────────────────────────────────────
-  const total    = sensors.length;
-  const occupied = sensors.filter(s => s.status === 'Present').length;
-  const green    = sensors.filter(s => sensorColour(s) === GREEN).length;
-  const amber    = sensors.filter(s => sensorColour(s) === AMBER).length;
-  const red      = sensors.filter(s => sensorColour(s) === RED).length;
+  // ── Pre-compute colours once per sensors change ───────────
+  const colouredSensors = useMemo(
+    () => sensors.map(s => ({ ...s, colour: sensorColour(s) })),
+    [sensors],
+  );
+
+  const total    = colouredSensors.length;
+  const occupied = colouredSensors.filter(s => s.status === 'Present').length;
+  const green    = colouredSensors.filter(s => s.colour === GREEN).length;
+  const amber    = colouredSensors.filter(s => s.colour === AMBER).length;
+  const red      = colouredSensors.filter(s => s.colour === RED).length;
 
   return (
     <React.Fragment>
@@ -522,14 +528,14 @@ const MelbourneParkingMap: React.FC = () => {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              {sensors.filter(s => visibleColours.has(sensorColour(s))).map(sensor => (
+              {colouredSensors.filter(s => visibleColours.has(s.colour)).map(sensor => (
                 <CircleMarker
                   key={sensor.id}
                   center={[sensor.lat, sensor.lon]}
                   radius={6}
                   pathOptions={{
-                    color: sensorColour(sensor),
-                    fillColor: sensorColour(sensor),
+                    color: sensor.colour,
+                    fillColor: sensor.colour,
                     fillOpacity: 0.85,
                     weight: 1.5,
                   }}
@@ -612,9 +618,9 @@ const MelbourneParkingMap: React.FC = () => {
                 backdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', gap: 5,
               }}
             >
-              <LegendRow color={GREEN} label="Free / &lt; 4 min" />
+              <LegendRow color={GREEN} label="Free / < 4 min" />
               <LegendRow color={AMBER} label="4 – 12 min" />
-              <LegendRow color={RED}   label="&gt; 12 min" />
+              <LegendRow color={RED}   label="> 12 min" />
               {showCarParks && carParks.length > 0 && (
                 <>
                   <div style={{ height: 1, background: '#e5e7eb', margin: '2px 0' }} />
@@ -697,7 +703,7 @@ const StatPill = ({
 const LegendRow = ({ color, label }: { color: string; label: string }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
     <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: color, flexShrink: 0 }} />
-    <span style={{ color: '#374151' }} dangerouslySetInnerHTML={{ __html: label }} />
+    <span style={{ color: '#374151' }}>{label}</span>
   </div>
 );
 

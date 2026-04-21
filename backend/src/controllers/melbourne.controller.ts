@@ -38,10 +38,14 @@ export const handleCaptureSnapshot = async (req: Request, res: Response, next: N
   } catch (err) { next(err); }
 };
 
+const parseHours = (raw: unknown, defaultVal = 24, max = 168): number => {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 && n <= max ? n : defaultVal;
+};
+
 export const handleOccupancyOverTime = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const hours = req.query.hours !== undefined ? Number(req.query.hours) : 24;
-    res.json(await MelbourneService.getOccupancyOverTime(hours));
+    res.json(await MelbourneService.getOccupancyOverTime(parseHours(req.query.hours)));
   } catch (err) { next(err); }
 };
 
@@ -62,8 +66,7 @@ export const handleSensorsCsv = async (req: Request, res: Response, next: NextFu
 
 export const handleHistoryCsv = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const hours = req.query.hours !== undefined ? Number(req.query.hours) : 24;
-    const csv = await MelbourneService.getHistoryAsCsv(hours);
+    const csv = await MelbourneService.getHistoryAsCsv(parseHours(req.query.hours));
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="history.csv"');
     res.send(csv);
