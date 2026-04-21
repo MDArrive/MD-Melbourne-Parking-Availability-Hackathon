@@ -7,6 +7,10 @@ import {
   handleListSnapshots,
   handleGetSnapshot,
   handleCaptureSnapshot,
+  handleOccupancyOverTime,
+  handleZoneSummary,
+  handleSensorsCsv,
+  handleHistoryCsv,
 } from '../controllers/melbourne.controller';
 
 const router = Router();
@@ -28,5 +32,17 @@ router.get('/snapshots/:id/sensors', asyncHandler(handleGetSnapshot));
 
 // POST /api/melbourne/snapshots/capture
 router.post('/snapshots/capture', asyncHandler(handleCaptureSnapshot));
+
+// GET /api/melbourne/reports/occupancy-over-time?hours=24
+router.get('/reports/occupancy-over-time', asyncHandler(handleOccupancyOverTime));
+
+// GET /api/melbourne/reports/zone-summary
+router.get('/reports/zone-summary', asyncHandler(handleZoneSummary));
+
+// GET /api/melbourne/reports/sensors/csv
+router.get('/reports/sensors/csv', asyncHandler(handleSensorsCsv));
+
+// GET /api/melbourne/reports/history/csv?hours=24
+router.get('/reports/history/csv', asyncHandler(handleHistoryCsv));
 
 export default router;

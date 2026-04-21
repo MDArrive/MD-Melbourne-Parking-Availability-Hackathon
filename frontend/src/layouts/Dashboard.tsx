@@ -1,6 +1,6 @@
 import React, { Suspense, ReactNode } from "react";
 import { Outlet } from "react-router-dom";
-import { Home } from "lucide-react";
+import { Home, BarChart2 } from "lucide-react";
 
 import Wrapper from "../components/Wrapper";
 import Sidebar from "../components/sidebar/Sidebar";
@@ -21,6 +21,11 @@ const sidebarNavigation: { title: string; pages: SidebarItemsType[] }[] = [
         href: "/",
         title: "Home",
         icon: Home,
+      },
+      {
+        href: "/exercises/melbourne-reporting",
+        title: "Reports",
+        icon: BarChart2,
       },
     ],
   },

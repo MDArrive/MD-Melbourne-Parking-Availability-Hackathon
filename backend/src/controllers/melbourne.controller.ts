@@ -37,3 +37,35 @@ export const handleCaptureSnapshot = async (req: Request, res: Response, next: N
     res.json(await MelbourneService.captureSnapshot());
   } catch (err) { next(err); }
 };
+
+export const handleOccupancyOverTime = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const hours = req.query.hours !== undefined ? Number(req.query.hours) : 24;
+    res.json(await MelbourneService.getOccupancyOverTime(hours));
+  } catch (err) { next(err); }
+};
+
+export const handleZoneSummary = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.json(await MelbourneService.getZoneSummary());
+  } catch (err) { next(err); }
+};
+
+export const handleSensorsCsv = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const csv = await MelbourneService.getSensorsAsCsv();
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="sensors.csv"');
+    res.send(csv);
+  } catch (err) { next(err); }
+};
+
+export const handleHistoryCsv = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const hours = req.query.hours !== undefined ? Number(req.query.hours) : 24;
+    const csv = await MelbourneService.getHistoryAsCsv(hours);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="history.csv"');
+    res.send(csv);
+  } catch (err) { next(err); }
+};

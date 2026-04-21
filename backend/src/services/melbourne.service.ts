@@ -129,8 +129,180 @@ export const getSnapshotSensors = async (id: string): Promise<SensorWithDuration
     status: r.status,
     occupancySince: null,
     lastUpdated: snapshot.capturedAt,
+    createdAt: snapshot.capturedAt,
+    updatedAt: snapshot.capturedAt,
     durationMinutes: r.durationMinutes ?? null,
   }));
+};
+
+export interface OccupancyOverTimeRow {
+  capturedAt: string;
+  totalSensors: number;
+  occupiedCount: number;
+  occupancyPercent: number;
+  greenCount: number;
+  amberCount: number;
+  redCount: number;
+}
+
+export const getOccupancyOverTime = async (hours: number): Promise<OccupancyOverTimeRow[]> => {
+  const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+  const snapshots = await MelbourneRepository.findSnapshotsWithReadingsSince(cutoff);
+
+  return snapshots.map((snapshot) => {
+    const totalSensors = snapshot.readings.length;
+    let occupiedCount = 0;
+    let greenCount = 0;
+    let amberCount = 0;
+    let redCount = 0;
+
+    for (const reading of snapshot.readings) {
+      if (reading.status === 'Present') {
+        occupiedCount++;
+        const minutes = reading.durationMinutes;
+        if (minutes === null || minutes < 4) {
+          greenCount++;
+        } else if (minutes <= 12) {
+          amberCount++;
+        } else {
+          redCount++;
+        }
+      }
+    }
+
+    const occupancyPercent =
+      totalSensors > 0
+        ? Math.round((occupiedCount / totalSensors) * 1000) / 10
+        : 0;
+
+    return {
+      capturedAt: snapshot.capturedAt.toISOString(),
+      totalSensors,
+      occupiedCount,
+      occupancyPercent,
+      greenCount,
+      amberCount,
+      redCount,
+    };
+  });
+};
+
+export interface ZoneSummaryRow {
+  zoneNumber: number;
+  totalBays: number;
+  occupiedBays: number;
+  occupancyPercent: number;
+  avgDurationMinutes: number | null;
+  redCount: number;
+  amberCount: number;
+  greenCount: number;
+}
+
+export const getZoneSummary = async (): Promise<ZoneSummaryRow[]> => {
+  const snapshot = await MelbourneRepository.findMostRecentSnapshotWithReadings();
+  if (!snapshot) return [];
+
+  const zoneMap = new Map<
+    number,
+    { status: string; durationMinutes: number | null }[]
+  >();
+
+  for (const reading of snapshot.readings) {
+    const existing = zoneMap.get(reading.zoneNumber) ?? [];
+    existing.push({ status: reading.status, durationMinutes: reading.durationMinutes ?? null });
+    zoneMap.set(reading.zoneNumber, existing);
+  }
+
+  const zones: ZoneSummaryRow[] = [];
+
+  for (const [zoneNumber, readings] of zoneMap.entries()) {
+    const totalBays = readings.length;
+    let occupiedBays = 0;
+    let greenCount = 0;
+    let amberCount = 0;
+    let redCount = 0;
+    const durations: number[] = [];
+
+    for (const reading of readings) {
+      if (reading.status === 'Present') {
+        occupiedBays++;
+        const minutes = reading.durationMinutes;
+        if (minutes !== null) durations.push(minutes);
+        if (minutes === null || minutes < 4) {
+          greenCount++;
+        } else if (minutes <= 12) {
+          amberCount++;
+        } else {
+          redCount++;
+        }
+      }
+    }
+
+    const occupancyPercent =
+      totalBays > 0 ? Math.round((occupiedBays / totalBays) * 1000) / 10 : 0;
+
+    const avgDurationMinutes =
+      durations.length > 0
+        ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+        : null;
+
+    zones.push({
+      zoneNumber,
+      totalBays,
+      occupiedBays,
+      occupancyPercent,
+      avgDurationMinutes,
+      redCount,
+      amberCount,
+      greenCount,
+    });
+  }
+
+  return zones.sort((a, b) => b.occupancyPercent - a.occupancyPercent);
+};
+
+function csvEscape(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+export const getSensorsAsCsv = async (): Promise<string> => {
+  const sensors = await getSensorsWithDuration();
+  const header = 'kerbsideId,zoneNumber,lat,lon,status,durationMinutes,lastUpdated';
+  const rows = sensors.map((s) =>
+    [
+      csvEscape(s.kerbsideId),
+      csvEscape(s.zoneNumber),
+      csvEscape(s.lat),
+      csvEscape(s.lon),
+      csvEscape(s.status),
+      csvEscape(s.durationMinutes),
+      csvEscape(s.lastUpdated.toISOString()),
+    ].join(','),
+  );
+  return [header, ...rows].join('\n');
+};
+
+export const getHistoryAsCsv = async (hours: number): Promise<string> => {
+  const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+  const rows = await MelbourneRepository.findSnapshotReadingsSince(cutoff);
+  const header = 'capturedAt,kerbsideId,zoneNumber,lat,lon,status,durationMinutes';
+  const lines = rows.map((r) =>
+    [
+      csvEscape(r.capturedAt.toISOString()),
+      csvEscape(r.kerbsideId),
+      csvEscape(r.zoneNumber),
+      csvEscape(r.lat),
+      csvEscape(r.lon),
+      csvEscape(r.status),
+      csvEscape(r.durationMinutes),
+    ].join(','),
+  );
+  return [header, ...lines].join('\n');
 };
 
 export const getPriorityZones = async (): Promise<ZonePriority[]> => {

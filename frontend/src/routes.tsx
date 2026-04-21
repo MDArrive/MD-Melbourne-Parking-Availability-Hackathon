@@ -25,6 +25,7 @@ const Crypto = lazy(() => import("./pages/dashboards/Crypto"));
 // App Pages (New Section)
 const HomePage = lazy(() => import("./pages/app/HomePage"));
 const MelbourneParkingMap = lazy(() => import("./pages/app/MelbourneParkingMap"));
+const MelbourneReporting = lazy(() => import("./pages/app/MelbourneReporting"));
 
 // Exercise Pages (Previously Example)
 const ExerciseTaskList = lazy(
@@ -181,6 +182,10 @@ const routes = [
       {
         path: "melbourne-parking",
         element: <MelbourneParkingMap />,
+      },
+      {
+        path: "melbourne-reporting",
+        element: <MelbourneReporting />,
       },
     ],
   },

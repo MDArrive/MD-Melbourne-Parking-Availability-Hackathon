@@ -118,3 +118,78 @@ export const getSnapshotWithReadings = async (
     include: { readings: true },
   });
 };
+
+export interface SnapshotOccupancyRow {
+  capturedAt: Date;
+  readings: { status: string; durationMinutes: number | null }[];
+}
+
+export const findSnapshotsWithReadingsSince = async (
+  cutoff: Date,
+): Promise<SnapshotOccupancyRow[]> => {
+  return prisma.melbourneSnapshot.findMany({
+    where: { capturedAt: { gte: cutoff } },
+    orderBy: { capturedAt: 'asc' },
+    include: {
+      readings: {
+        select: { status: true, durationMinutes: true },
+      },
+    },
+  });
+};
+
+export const findMostRecentSnapshotWithReadings = async (): Promise<
+  (MelbourneSnapshot & { readings: MelbourneSnapshotReading[] }) | null
+> => {
+  const snapshot = await prisma.melbourneSnapshot.findFirst({
+    orderBy: { capturedAt: 'desc' },
+    include: { readings: true },
+  });
+  return snapshot;
+};
+
+export const findSnapshotReadingsSince = async (
+  cutoff: Date,
+): Promise<
+  {
+    capturedAt: Date;
+    kerbsideId: number;
+    zoneNumber: number;
+    lat: number;
+    lon: number;
+    status: string;
+    durationMinutes: number | null;
+  }[]
+> => {
+  const snapshots = await prisma.melbourneSnapshot.findMany({
+    where: { capturedAt: { gte: cutoff } },
+    orderBy: { capturedAt: 'asc' },
+    include: { readings: true },
+  });
+
+  const rows: {
+    capturedAt: Date;
+    kerbsideId: number;
+    zoneNumber: number;
+    lat: number;
+    lon: number;
+    status: string;
+    durationMinutes: number | null;
+  }[] = [];
+
+  for (const snapshot of snapshots) {
+    for (const reading of snapshot.readings) {
+      rows.push({
+        capturedAt: snapshot.capturedAt,
+        kerbsideId: reading.kerbsideId,
+        zoneNumber: reading.zoneNumber,
+        lat: reading.lat,
+        lon: reading.lon,
+        status: reading.status,
+        durationMinutes: reading.durationMinutes ?? null,
+      });
+    }
+  }
+
+  return rows;
+};
