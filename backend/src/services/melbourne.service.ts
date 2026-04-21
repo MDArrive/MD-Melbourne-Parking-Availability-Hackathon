@@ -382,6 +382,38 @@ export interface WeatherData {
   } | null;
 }
 
+export interface NewsHeadline {
+  title: string;
+  url: string;
+}
+
+export const getNewsHeadlines = async (): Promise<NewsHeadline[]> => {
+  const rssUrl = 'https://news.google.com/rss/search?q=parking+melbourne&hl=en-AU&gl=AU&ceid=AU:en';
+  const res = await fetch(rssUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+  if (!res.ok) throw new Error(`News RSS error: ${res.status}`);
+  const xml = await res.text();
+
+  const headlines: NewsHeadline[] = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  let match;
+
+  while ((match = itemRegex.exec(xml)) !== null) {
+    const itemXml = match[1];
+    const titleMatch = /<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/.exec(itemXml);
+    const linkMatch = /<link>([^<]+)<\/link>/.exec(itemXml);
+    const guidMatch = /<guid[^>]*>([^<]+)<\/guid>/.exec(itemXml);
+
+    if (titleMatch) {
+      const rawTitle = titleMatch[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').trim();
+      const title = rawTitle.replace(/ - [^-]+$/, '').trim();
+      const url = (linkMatch?.[1] ?? guidMatch?.[1] ?? '').trim();
+      if (title && url) headlines.push({ title, url });
+    }
+  }
+
+  return headlines.slice(0, 12);
+};
+
 export const getWeather = async (): Promise<WeatherData> => {
   const url = `https://api.weather.bom.gov.au/v1/locations/${BOM_GEOHASH}/forecasts/daily`;
   const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });

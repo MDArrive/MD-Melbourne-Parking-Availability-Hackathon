@@ -75,3 +75,9 @@ export const handleGetWeather = async (req: Request, res: Response, next: NextFu
     res.json(await MelbourneService.getWeather());
   } catch (err) { next(err); }
 };
+
+export const handleGetNews = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.json(await MelbourneService.getNewsHeadlines());
+  } catch (err) { next(err); }
+};

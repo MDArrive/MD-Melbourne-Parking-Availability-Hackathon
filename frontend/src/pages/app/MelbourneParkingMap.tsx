@@ -13,6 +13,11 @@ const AMBER  = '#f59e0b';
 const RED    = '#ef4444';
 
 // ── Types ─────────────────────────────────────────────────────
+interface NewsHeadline {
+  title: string;
+  url: string;
+}
+
 interface WeatherData {
   current: {
     temp: number | null;
@@ -76,6 +81,7 @@ const MelbourneParkingMap: React.FC = () => {
   const [selectedSnapshot, setSelectedSnapshot] = useState<SnapshotMeta | null>(null);
   const [pickerValue,      setPickerValue]      = useState('');
   const [weather,          setWeather]          = useState<WeatherData | null>(null);
+  const [news,             setNews]             = useState<NewsHeadline[]>([]);
 
   const toDatetimeLocal = (d: Date): string => {
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -198,6 +204,14 @@ const MelbourneParkingMap: React.FC = () => {
     return () => clearInterval(id);
   }, []);
 
+  // News headlines — load once then every 30 minutes
+  useEffect(() => {
+    const load = () => fetchApi<NewsHeadline[]>('/melbourne/news').then(d => setNews(d || [])).catch(() => {});
+    load();
+    const id = setInterval(load, 1_800_000);
+    return () => clearInterval(id);
+  }, []);
+
   const handleRefreshNow = async () => {
     setRefreshing(true);
     try {
@@ -260,6 +274,66 @@ const MelbourneParkingMap: React.FC = () => {
             </>
           )}
         </div>
+      )}
+
+      {/* ── News ticker ── */}
+      {news.length > 0 && (
+        <>
+          <style>{`
+            @keyframes ticker-scroll {
+              0%   { transform: translateX(0); }
+              100% { transform: translateX(-50%); }
+            }
+            .ticker-track { animation: ticker-scroll ${Math.max(30, news.length * 6)}s linear infinite; }
+            .ticker-track:hover { animation-play-state: paused; }
+            .ticker-link { color: #e2e8f0; text-decoration: none; white-space: nowrap; }
+            .ticker-link:hover { color: #d8b4fe; text-decoration: underline; }
+          `}</style>
+          <div style={{
+            background: '#0f0018',
+            borderBottom: '1px solid #2d0038',
+            padding: '0 0',
+            height: 28,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+          }}>
+            <div style={{
+              flexShrink: 0,
+              background: '#5F016F',
+              color: '#fff',
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              padding: '0 12px',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              letterSpacing: '0.05em',
+              whiteSpace: 'nowrap',
+              zIndex: 1,
+            }}>
+              PARKING NEWS
+            </div>
+            <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+              <div className="ticker-track" style={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
+                {[...news, ...news].map((item, i) => (
+                  <React.Fragment key={i}>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ticker-link"
+                      style={{ fontSize: '0.72rem', padding: '0 6px' }}
+                    >
+                      {item.title}
+                    </a>
+                    <span style={{ color: '#5F016F', fontSize: '0.8rem', padding: '0 4px', userSelect: 'none' }}>◆</span>
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* ── Stat bar ── */}
